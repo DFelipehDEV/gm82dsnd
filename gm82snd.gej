@@ -1,0 +1,226 @@
+{
+	"name": "renex pokey",
+	"folder": "gm82",
+	"version": "1.0",
+	"author": "renex",
+	"date": "27/08/2026",
+	"license": "Free to use, also for commercial games.",
+	"description": "A modern, high quality implementation of a POKEY-style sound engine.",
+	"helpfile": "",
+	"hidden": false,
+	"dependencies": [
+		"Game Maker 8.2 Core"
+	],
+	"files": [
+		{
+			"filename": "renex-pokey.gml",
+			"origname": "source\\renex-pokey.gml",
+			"kind": 2,
+			"init": "__pokey_gml_init",
+			"final": "",
+			"functions": [
+				{
+					"name": "pokey_get_byte_frequency",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_get_byte_frequency(byte)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_get_chromatic_frequency",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_get_chromatic_frequency(note)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_get_instrument_name",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_get_instrument_name(type)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_init",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_init(samplerate,channels)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_sound",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_sound(channel,type,freq,vol,pan)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2,
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_stop",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_stop()",
+					"hidden": false,
+					"argtypes": [],
+					"returntype": 2
+				},
+				{
+					"name": "pokey_update",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "pokey_update()",
+					"hidden": false,
+					"argtypes": [],
+					"returntype": 2
+				},
+				{
+					"name": "__pokey_gml_init",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": null,
+					"returntype": 2
+				}
+			],
+			"constants": [
+				{
+					"name": "pk_square",
+					"value": "0",
+					"hidden": false
+				},
+				{
+					"name": "pk_p1813",
+					"value": "1",
+					"hidden": false
+				},
+				{
+					"name": "pk_p125",
+					"value": "2",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly4",
+					"value": "3",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly5",
+					"value": "4",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly9",
+					"value": "5",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly4_5",
+					"value": "6",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly17",
+					"value": "7",
+					"hidden": false
+				},
+				{
+					"name": "pk_poly917",
+					"value": "8",
+					"hidden": false
+				}
+			]
+		},
+		{
+			"filename": "renex-pokey.dll",
+			"origname": "build\\Release\\renex-pokey.dll",
+			"kind": 1,
+			"init": "",
+			"final": "",
+			"functions": [
+				{
+					"name": "pokey_get_voices",
+					"extname": "__pokey_get_voices",
+					"calltype": 12,
+					"helpline": "pokey_get_voices()",
+					"hidden": false,
+					"argtypes": [],
+					"returntype": 2
+				},
+				{
+					"name": "__pokey_dll_init",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__pokey_dll_update",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [],
+					"returntype": 2
+				},
+				{
+					"name": "__pokey_sound",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2,
+						2,
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__pokey_get_tuning",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				}
+			],
+			"constants": []
+		}
+	]
+}

@@ -1,0 +1,5 @@
+*.gex
+*.dll
+build
+*.py
+desktop.ini
