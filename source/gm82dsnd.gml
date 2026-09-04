@@ -5,9 +5,9 @@
         __pokey_channels,
         __pokey_maxfreq;
     
-    __pokey_version=100
+    __pokey_version=101
     
-    object_event_add(gm82core_object,ev_step,ev_step_end,"if (__pokey_init) __pokey_dll_update()")
+    object_event_add(gm82core_object,ev_step,ev_step_end,"if (__pokey_init) __pokey_dll_update(1000/room_speed)")
 
 
 #define pokey_init
@@ -48,7 +48,7 @@
     //Note that is is normally done automatically for you; you only need to call it manually if you're f.ex. in a deadlock for a loading screen or a room transition.
     //Otherwise, do not call this function.
     
-    if (__pokey_init) __pokey_dll_update()
+    if (__pokey_init) __pokey_dll_update(1000/room_speed)
 
 
 #define pokey_sound
@@ -60,7 +60,7 @@
     //pan: channel pan (-1 - 1)
     //Starts playing sound in a channel.
     //To stop a channel, set the volume to 0.
-    //Do note that the maximum frequency that can be played is below half of your sample rate, anything too close to it will have "beating" artifacts.
+    //Do note that the maximum frequency that can be played is below half of your sample rate.
     //The available instrument types are identifiable with the pk_ constants.
     //More instrument information is available in the definition for pokey_get_instrument_name.
     
@@ -73,6 +73,23 @@
             median(-1,argument4,1),
         )
     }
+
+
+#define pokey_set_volume
+    ///pokey_set_volume(volume)
+    //volume: volume value (0-1)
+    //Sets the overall volume level for the pokey engine.
+    //Active channels are normalized to this value when they are mixed.
+    
+    __pokey_set_volume(median(0,argument0,1))
+
+
+#define pokey_get_voices
+    ///pokey_get_voices()
+    //Returns the current number of active channels.
+    //A channel is considered active when frequency and volume are not zero.
+    
+    return __pokey_get_voices()
 
 
 #define pokey_stop

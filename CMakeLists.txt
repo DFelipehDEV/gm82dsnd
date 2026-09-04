@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
-project(renex-pokey CXX)
+project(gm82dsnd CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "/O2 /W2 /WX /EHsc")
 
-add_library(renex-pokey SHARED source/renex-pokey.cpp)
+add_library(gm82dsnd SHARED source/gm82dsnd.cpp)
 
 find_package(Python COMPONENTS Interpreter)
 

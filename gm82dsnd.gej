@@ -1,11 +1,11 @@
 {
-	"name": "renex pokey",
+	"name": "Game Maker 8.2 DirectSound",
 	"folder": "gm82",
-	"version": "1.0",
+	"version": "0.1",
 	"author": "renex",
-	"date": "27/08/2026",
+	"date": "04/09/2026",
 	"license": "Free to use, also for commercial games.",
-	"description": "A modern, high quality implementation of a POKEY-style sound engine.",
+	"description": "A modern audio engine for Game Maker 8.2.",
 	"helpfile": "",
 	"hidden": false,
 	"dependencies": [
@@ -13,8 +13,8 @@
 	],
 	"files": [
 		{
-			"filename": "renex-pokey.gml",
-			"origname": "source\\renex-pokey.gml",
+			"filename": "gm82dsnd.gml",
+			"origname": "source\\gm82dsnd.gml",
 			"kind": 2,
 			"init": "__pokey_gml_init",
 			"final": "",
@@ -156,8 +156,8 @@
 			]
 		},
 		{
-			"filename": "renex-pokey.dll",
-			"origname": "build\\Release\\renex-pokey.dll",
+			"filename": "gm82dsnd.dll",
+			"origname": "build\\Release\\gm82dsnd.dll",
 			"kind": 1,
 			"init": "",
 			"final": "",
