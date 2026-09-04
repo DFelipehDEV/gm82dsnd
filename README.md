@@ -1,9 +1,3 @@
-# renex pokey
+# Game Maker 8.2 DirectSound
 
-![image](pokey.png)
-
-A modern, high quality implementation of a POKEY-style sound engine.
-
-Written by renex. Designed for Game Maker 8.2.
-
-[Read the manual](manual.txt).
+A modern audio engine for Game Maker 8.2.

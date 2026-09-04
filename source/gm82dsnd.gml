@@ -1,56 +1,9 @@
-#define __pokey_gml_init
-    globalvar
-        __pokey_version,
-        __pokey_init,
-        __pokey_channels,
-        __pokey_maxfreq;
+#define __gm82dsound_gml_init
+    globalvar __gm82dsound_version; __gm82dsound_version=101
     
-    __pokey_version=101
-    
-    object_event_add(gm82core_object,ev_step,ev_step_end,"if (__pokey_init) __pokey_dll_update(1000/room_speed)")
+    object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
 
-
-#define pokey_init
-    ///pokey_init(samplerate,channels)
-    //samplerate: audio sample rate (8000-48000)
-    //channels: number of channels (1-32)
-    //Starts the sound engine with the desired settings.
-    //The sample rate is limited by the system's capabilities.
-    //Usually, values between 8000 and 48000 are acceptable.
-    //You can use a lower sample rate as a sort of low-pass filter, depending on your stylistic preferences.
-    //The number of channels is the number of unique voices that can be played simultaneously, limited between 1 and 32.
-    //This limit is not final, just let me know if you need more voices for your specific application.
-    
-    if (__pokey_init) {
-        show_error("Error in function pokey_init: pokey is already initialized.",false)
-        exit
-    }
-    
-    var sample_rate;
-    
-    sample_rate=median(8000,argument0,48000)
-    __pokey_channels=median(1,argument1,32)
-    
-    __pokey_maxfreq=sample_rate div 2
-    
-    __pokey_dll_init(
-        window_handle(),
-        sample_rate,
-        __pokey_channels
-    )
-    
-    __pokey_init=true
-
-
-#define pokey_update()
-    ///pokey_update()
-    //Updates the pokey engine with the latest instrument data.
-    //Note that is is normally done automatically for you; you only need to call it manually if you're f.ex. in a deadlock for a loading screen or a room transition.
-    //Otherwise, do not call this function.
-    
-    if (__pokey_init) __pokey_dll_update(1000/room_speed)
-
-
+/*
 #define pokey_sound
     ///pokey_sound(channel,type,freq,vol,pan)
     //channel: channel to use (0 - 31)

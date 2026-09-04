@@ -16,94 +16,16 @@
 			"filename": "gm82dsnd.gml",
 			"origname": "source\\gm82dsnd.gml",
 			"kind": 2,
-			"init": "__pokey_gml_init",
+			"init": "__gm82dsound_gml_init",
 			"final": "",
 			"functions": [
 				{
-					"name": "pokey_get_byte_frequency",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_get_byte_frequency(byte)",
-					"hidden": false,
-					"argtypes": [
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_get_chromatic_frequency",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_get_chromatic_frequency(note)",
-					"hidden": false,
-					"argtypes": [
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_get_instrument_name",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_get_instrument_name(type)",
-					"hidden": false,
-					"argtypes": [
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_init",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_init(samplerate,channels)",
-					"hidden": false,
-					"argtypes": [
-						2,
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_sound",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_sound(channel,type,freq,vol,pan)",
-					"hidden": false,
-					"argtypes": [
-						2,
-						2,
-						2,
-						2,
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_stop",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_stop()",
-					"hidden": false,
-					"argtypes": [],
-					"returntype": 2
-				},
-				{
-					"name": "pokey_update",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "pokey_update()",
-					"hidden": false,
-					"argtypes": [],
-					"returntype": 2
-				},
-				{
-					"name": "__pokey_gml_init",
+					"name": "__gm82dsound_gml_init",
 					"extname": "",
 					"calltype": 2,
 					"helpline": "",
 					"hidden": true,
-					"argtypes": null,
+					"argtypes": [],
 					"returntype": 2
 				}
 			],
@@ -163,53 +85,18 @@
 			"final": "",
 			"functions": [
 				{
-					"name": "pokey_get_voices",
-					"extname": "__pokey_get_voices",
-					"calltype": 12,
-					"helpline": "pokey_get_voices()",
-					"hidden": false,
-					"argtypes": [],
-					"returntype": 2
-				},
-				{
-					"name": "__pokey_dll_init",
+					"name": "__dsound_init",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
 					"hidden": true,
 					"argtypes": [
-						2,
-						2,
 						2
 					],
 					"returntype": 2
 				},
 				{
-					"name": "__pokey_dll_update",
-					"extname": "",
-					"calltype": 12,
-					"helpline": "",
-					"hidden": true,
-					"argtypes": [],
-					"returntype": 2
-				},
-				{
-					"name": "__pokey_sound",
-					"extname": "",
-					"calltype": 12,
-					"helpline": "",
-					"hidden": true,
-					"argtypes": [
-						2,
-						2,
-						2,
-						2,
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "__pokey_get_tuning",
+					"name": "__dsound_update",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
