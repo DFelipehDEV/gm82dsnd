@@ -3,120 +3,85 @@
     
     object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
 
-/*
-#define pokey_sound
-    ///pokey_sound(channel,type,freq,vol,pan)
-    //channel: channel to use (0 - 31)
-    //type: instrument id (0 - 8)
-    //freq: sound frequency in hz
-    //volume: channel volume (0 - 1)
-    //pan: channel pan (-1 - 1)
-    //Starts playing sound in a channel.
-    //To stop a channel, set the volume to 0.
-    //Do note that the maximum frequency that can be played is below half of your sample rate.
-    //The available instrument types are identifiable with the pk_ constants.
-    //More instrument information is available in the definition for pokey_get_instrument_name.
+
+#define sound_add
+    ///sound_add(fname,kind,preload)
     
-    if (__pokey_init) {
-        __pokey_sound(
-            median(0,argument0,__pokey_channels-1),
-            median(0,argument1,8),
-            median(0,argument2,__pokey_maxfreq),
-            median(0,argument3,1),
-            median(-1,argument4,1),
-        )
-    }
+#define sound_background_tempo
+    ///sound_background_tempo(factor)
+    
+#define sound_delete
+    ///sound_delete(index)
+    
+#define sound_discard
+    ///sound_discard(index)
+    
+#define sound_exists
+    ///sound_exists(ind)
+    
+#define sound_fade
+    ///sound_fade(index,value,time)
+    
+#define sound_get_kind
+    ///sound_get_kind(ind)
+    
+#define sound_get_name
+    ///sound_get_name(ind)
+    
+#define sound_get_preload
+    ///sound_get_preload(ind)
+    
+#define sound_global_volume
+    ///sound_global_volume(value)
+    
+#define sound_isplaying
+    ///sound_isplaying(index)
+    
+#define sound_loop
+    ///sound_loop(index)
+    
+#define sound_pan
+    ///sound_pan(index,value)
+    
+#define sound_play
+    ///sound_play(index)
+    
+#define sound_replace
+    ///sound_replace(index,fname,kind,preload)
+    
+#define sound_restore
+    ///sound_restore(index)
+    
+#define sound_set_search_directory
+    ///sound_set_search_directory(dir)
+    
+#define sound_stop
+    ///sound_stop(index)
+    
+#define sound_stop_all
+    ///sound_stop_all()
+    
+#define sound_volume
+    ///sound_volume(index,value)
+
+#define sound_pitch
+#define sound_get_pos
+#define sound_set_pos
+#define sound_set_loop
 
 
-#define pokey_set_volume
-    ///pokey_set_volume(volume)
-    //volume: volume value (0-1)
-    //Sets the overall volume level for the pokey engine.
-    //Active channels are normalized to this value when they are mixed.
-    
-    __pokey_set_volume(median(0,argument0,1))
+#define sound_effect_chorus
+#define sound_effect_compressor
+#define sound_effect_echo
+#define sound_effect_equalizer
+#define sound_effect_flanger
+#define sound_effect_gargle
+#define sound_effect_reverb
+#define sound_effect_set
 
-
-#define pokey_get_voices
-    ///pokey_get_voices()
-    //Returns the current number of active channels.
-    //A channel is considered active when frequency and volume are not zero.
-    
-    return __pokey_get_voices()
-
-
-#define pokey_stop
-    ///pokey_stop()
-    //Silences all channels.
-    //Calling this function is equivalent to setting the volume to 0 on all channels.
-    var __i;
-    
-    if (__pokey_init) {
-        __i=0 repeat (__pokey_channels) {__pokey_sound(__i,0,0,0,0) __i+=1}
-    }
-    
-    
-#define pokey_get_chromatic_frequency
-    ///pokey_get_chromatic_frequency(note)
-    //note: note to convert to hertz
-    //Returns the frequency in Hz of a note on the chromatic scale.
-    //The first note is A0 (27.5Hz), with 12 notes in an octave.
-    //For example, note 48 (A4, 4 octaves above A0) returns 440 Hz.
-    
-    //27.5 = C0 in hz
-    //12 = notes in an octave
-    //1.06... = 12th root of 2
-    return 27.5*power(2,argument0 div 12)*power(1.05946309436,argument0 mod 12)
-
-
-#define pokey_get_byte_frequency
-    ///pokey_get_byte_frequency(byte,instrument)
-    //byte: note id (0-254)
-    //instrument: instrument type (0-8)
-    //Returns a corrected frequency value of a note byte from 0 to 254 as heard in the original POKEY chip with default settings.
-    //If you're going for a retro aesthetic, using only frequencies returned by this function should provide the most authentic Atari sound flavor.
-    
-    var __note,__freq,__type;
-    
-    __note=median(0,floor(argument0),254)+4
-    __type=median(0,floor(argument1),8)
-    
-    //clock speed of NTSC console
-    //(clock / (note + 4)) / (note + 4 + 1)
-    __freq=(1789790/__note)/(__note+1)
-    
-    //adjust speed of poly types
-    if (__type>=3) __freq*=1.789790
-    
-    //undo frequency correction
-    return __freq/__pokey_get_tuning(__type)
-
-
-#define pokey_get_instrument_name
-    ///pokey_get_instrument_name(type)
-    //Returns a string with the internal name of the selected instrument.
-    //Available instrument types:
-    //pk_square (0): Square
-    //pk_p1813 (1): Pulse 18-13 duty
-    //pk_p125 (2): Pulse 12.5% duty
-    //pk_poly4 (3): Poly 4
-    //pk_poly5 (4): Poly 5
-    //pk_poly9 (5): Poly 9
-    //pk_poly4_5 (6): Poly 4 -> Poly 5
-    //pk_poly17 (7): Poly 17
-    //pk_poly917 (8): Poly 9 -> Poly 17
-    
-    return pick(
-        median(0,argument0,8),
-        "Square",
-        "Pulse 18-13 duty",
-        "Pulse 12.5% duty",
-        "Poly 4",
-        "Poly 5",
-        "Poly 9",
-        "Poly 4 -> Poly 5",
-        "Poly 17",
-        "Poly 9 -> Poly 17"
-    )
+#define sound_3d_set_sound_cone
+#define sound_3d_set_sound_distance
+#define sound_3d_set_sound_position
+#define sound_3d_set_sound_velocity
 //
 //
