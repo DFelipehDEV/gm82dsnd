@@ -156,10 +156,13 @@ extern void debug_message(const wchar_t* msg, int value) {
         float pitch;
         int loop_a;
         int loop_b;
+        int inst_count;
     };
 
     struct SoundInstance {
         SoundResource sound;
+        LPDIRECTSOUNDBUFFER clone_buffer;
+        int index;
         float volume;
         float pan;
         float pitch;
@@ -175,15 +178,16 @@ extern void debug_message(const wchar_t* msg, int value) {
 
 //constants
     #define THREAD_MS 15
-    #define RESOURCE_COUNT 10000
+    #define RESOURCE_COUNT 100000
     #define INSTANCE_COUNT 100
 
 
 //global variables
     float global_volume;
+    int last_instance_id = RESOURCE_COUNT;
 
-    SoundResource* sound_resources[RESOURCE_COUNT];
-    SoundInstance* sound_instances[4][INSTANCE_COUNT];
+    SoundResource sound_resources[RESOURCE_COUNT];
+    SoundInstance sound_instances[4][INSTANCE_COUNT];
 
 
 //---------------------------------------------------------------------------//
@@ -332,12 +336,12 @@ int dsound_get_free_instance(int kind) {
     SoundInstance* inst;
     SoundInstance* oldest;
     int oldest_id;
-    oldest = sound_instances[kind][0];
+    oldest = &sound_instances[kind][0];
     REPEAT(i, INSTANCE_COUNT) {
-        inst = sound_instances[kind][i];
+        inst = &sound_instances[kind][i];
         if (inst == NULL) return i;
         
-        if (inst->age > oldest->age) {
+        if (inst -> age > oldest -> age) {
             oldest = inst;
             oldest_id = i;
         }
@@ -365,18 +369,48 @@ int dsound_add_mem(char* buffer, int length) {
 }
 
 int dsound_play(int index, bool loop) {
-    SoundResource* sound = sound_resources[index];
-    int kind = sound->kind;
+    SoundResource* sound = &sound_resources[index];
+    int kind = sound -> kind;
     
     int id = dsound_get_free_instance(kind);
     
     //instantiate etc.
     
+    last_instance_id++;
+    
     return id;
 }
 
-void dsound_stop_inst(SoundInstance* inst) {
-    //todo
+bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundInstance* get_inst) {
+    get_kind = ERROR_NON_EXIST;
+    get_index = ERROR_NON_EXIST;
+    get_inst = NULL;
+    
+    SoundInstance* inst;
+    
+    REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
+        inst = &sound_instances[kind][i];
+        if (inst -> index == iid) {
+            get_kind = kind;
+            get_index = i;
+            get_inst = inst;
+            return true
+        }
+    }
+    
+    return false
+}
+
+void dsound_stop_inst(int iid) {
+    int kind,index;
+    SoundInstance* inst;
+    
+    if (dsound_find_instance_from_iid(iid, &kind, &index, inst)) {
+        inst -> sound -> inst_count--;
+        //inst -> clone_buffer -> free idk
+        sound_instances[kind][index] = NULL;
+        free(inst);        
+    }
 }
 
 //---------------------------------------------------------------------------//
