@@ -111,10 +111,31 @@ extern void debug_message(const wchar_t* msg, int value) {
 
 
 //dsound
-    LPDIRECTSOUND Device;
+    LPDIRECTSOUND8 Device;
     LPDIRECTSOUNDBUFFER PrimaryBuffer;
     DSBUFFERDESC BufferDescriptor;
     WAVEFORMATEX FormatDescriptor;
+
+
+//wave format
+    #pragma pack(push, 1)
+    struct RiffWaveFmt {
+        char RIFF[4];
+        uint32_t size;
+        char WaveFmt[8];
+        uint32_t FormatLength;
+        uint16_t Format;
+        uint16_t Channels;
+        uint32_t SampleRate;
+        uint32_t BytesPerSec;
+        uint16_t BlockAlign;
+        uint16_t BitsPerSample;
+        uint16_t BlockSize;
+        uint16_t ValidBitsPerSample;
+        uint32_t ChannelMask;
+        char SubFormat[18];
+    };
+    #pragma pack(pop)
 
 
 //gm 8.1 sound memory structures
@@ -150,6 +171,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     struct SoundResource {
         LPDIRECTSOUNDBUFFER buffer;
         int kind;
+        bool exists = 0;
         bool loaded;
         float volume;
         float pan;
@@ -171,6 +193,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         int fade_length;
         int fade_amount;
         int age;
+        bool exists;
         bool playing;
         bool looping;
     };
@@ -204,14 +227,14 @@ void dsound_frame_update(int);
 int dsound_get_free_resource();
 int dsound_get_free_instance();
 int dsound_play(int, bool);
-void dsound_stop_inst(SoundInstance*);
+void dsound_stop_inst(int);
 
 
 //---------------------------------------------------------------------------//
 //system boilerplate
 
 
-DSBUFFERDESC* describe_buffer(DWORD flags,WAVEFORMATEX* format,DWORD size) {
+DSBUFFERDESC* describe_buffer(DWORD flags, WAVEFORMATEX* format, DWORD size) {
     //fills and returns a directsound buffer descriptor structure
     
     memset(&BufferDescriptor,0,sizeof(BufferDescriptor));
@@ -223,14 +246,14 @@ DSBUFFERDESC* describe_buffer(DWORD flags,WAVEFORMATEX* format,DWORD size) {
     return &BufferDescriptor;
 }
 
-WAVEFORMATEX* describe_format(int sample_rate) {
+WAVEFORMATEX* describe_format(int samplerate, int channels, int bits) {
     //fills and returns a directsound format descriptor structure
     
     memset(&FormatDescriptor,0,sizeof(FormatDescriptor));
     FormatDescriptor.wFormatTag = WAVE_FORMAT_PCM;
-    FormatDescriptor.nChannels = 2;
-    FormatDescriptor.nSamplesPerSec = (DWORD)sample_rate;
-    FormatDescriptor.wBitsPerSample = 8;
+    FormatDescriptor.nChannels = (WORD)channels;
+    FormatDescriptor.nSamplesPerSec = (DWORD)samplerate;
+    FormatDescriptor.wBitsPerSample = (WORD)bits;
     FormatDescriptor.nBlockAlign =
         (FormatDescriptor.wBitsPerSample / 8) * FormatDescriptor.nChannels;
     FormatDescriptor.nAvgBytesPerSec =
@@ -244,7 +267,7 @@ void dll_init(HWND hwnd) {
     
     
     //directsound
-        vibe_check(DirectSoundCreate(NULL, &Device, NULL));
+        vibe_check(DirectSoundCreate8(NULL, &Device, NULL));
         
         vibe_check(Device -> SetCooperativeLevel(hwnd, DSSCL_PRIORITY));
     
@@ -258,15 +281,7 @@ void dll_init(HWND hwnd) {
             NULL
         ));
         vibe_check(PrimaryBuffer -> Play(0, 0, DSBPLAY_LOOPING));
-        
-    
-    //initialize data
-        REPEAT(i,RESOURCE_COUNT) {
-            sound_resources[i] = NULL;
-        }
-        REPEAT(type,4) REPEAT(i,INSTANCE_COUNT) {
-            sound_instances[type][i] = NULL;
-        }
+
     
     //set up timer callback
         timeSetEvent(
@@ -311,6 +326,7 @@ GMREAL __dsound_play(double index, double loop) {
     return (double)dsound_play((int)index, (loop>0.5));
 }
 
+
 //---------------------------------------------------------------------------//
 //internals
 
@@ -327,7 +343,7 @@ void dsound_frame_update(int frame_ms) {
 
 int dsound_get_free_resource() {
     REPEAT(i, RESOURCE_COUNT) {
-        if (sound_resources[i] == NULL) return i;
+        if (!sound_resources[i].exists) return i;
     }
     return ERROR_NO_SPACE;
 }
@@ -339,22 +355,32 @@ int dsound_get_free_instance(int kind) {
     oldest = &sound_instances[kind][0];
     REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
-        if (inst == NULL) return i;
+        if (!inst -> exists) return i;
         
         if (inst -> age > oldest -> age) {
             oldest = inst;
             oldest_id = i;
         }
     }
-    dsound_stop_inst(oldest);
+    dsound_stop_inst(oldest_id);
     return oldest_id;
 }
 
 int dsound_add_file(char* fname) {
-    int id = dsound_get_free_resource();
-    ASSERT(id);
+    //load file
+        FILE* file = fopen(fname, "rb");
+        if (file == NULL) return ERROR_NON_EXIST;
+        
+        fseek(file, 0, SEEK_END);
+        int size = ftell(file);
+        fseek(file, 0, SEEK_SET);        
+        char* buffer = (char*)malloc(size);
+        fread(buffer, size, 1, file);
+        fclose(file);
     
-    //load wav etc
+    int id = dsound_add_mem(buffer,size);
+    
+    free(buffer);
     
     return id;
 }
@@ -363,7 +389,66 @@ int dsound_add_mem(char* buffer, int length) {
     int id = dsound_get_free_resource();
     ASSERT(id);
     
-    //load etc
+    //find file type from magic number
+    if (memcmp("RIF",buffer,3)==0) {
+        //read wav properties
+        RiffWaveFmt* format = (RiffWaveFmt*)buffer;
+        
+        uint32_t data_length = *(uint32_t*)(buffer+24+format->FormatLength);
+        char* data = (char*)(buffer+24+format->FormatLength);
+        
+        LPDIRECTSOUNDBUFFER secbuffer;
+        
+        //debug_message(L"sample rate %i",format -> SampleRate);
+        //debug_message(L"channels %i",format -> Channels);
+        //debug_message(L"bits %i",format -> BitsPerSample);        
+      
+        vibe_check(Device -> CreateSoundBuffer(
+            describe_buffer(
+                DSBCAPS_GLOBALFOCUS | DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY | DSBCAPS_CTRLFX,
+                describe_format(
+                    format -> SampleRate,
+                    format -> Channels,
+                    format -> BitsPerSample
+                ),
+                data_length
+            ),
+            &secbuffer,
+            NULL
+        ));
+        
+        //debug_message(L"created buffer of length %i",data_length);
+        
+        void* lock_chunk;
+        DWORD lock_size;
+        
+        vibe_check(secbuffer -> Lock(
+            0,
+            data_length,
+            &lock_chunk, &lock_size,
+            NULL, NULL,
+            0
+        ));
+        
+        memcpy(lock_chunk, data, lock_size);
+        
+        vibe_check(secbuffer -> Unlock(
+            lock_chunk, lock_size,
+            NULL, NULL
+        ));
+        
+        vibe_check(secbuffer -> Play(0, 0, 0));
+        
+    }
+    if (memcmp("Ogg",buffer,3)==0) {
+        //read ogg
+    }
+    if (memcmp("ID3",buffer,3)==0) {
+        //read mp3
+    }
+    
+    
+    
     
     return id;
 }
@@ -382,35 +467,34 @@ int dsound_play(int index, bool loop) {
 }
 
 bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundInstance* get_inst) {
-    get_kind = ERROR_NON_EXIST;
-    get_index = ERROR_NON_EXIST;
-    get_inst = NULL;
+    *get_kind = ERROR_NON_EXIST;
+    *get_index = ERROR_NON_EXIST;
     
     SoundInstance* inst;
     
     REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
         if (inst -> index == iid) {
-            get_kind = kind;
-            get_index = i;
+            *get_kind = kind;
+            *get_index = i;
             get_inst = inst;
-            return true
+            return true;
         }
     }
     
-    return false
+    return false;
 }
 
 void dsound_stop_inst(int iid) {
     int kind,index;
-    SoundInstance* inst;
+    SoundInstance* inst = NULL;
     
     if (dsound_find_instance_from_iid(iid, &kind, &index, inst)) {
-        inst -> sound -> inst_count--;
+        inst->sound.inst_count--;
         //inst -> clone_buffer -> free idk
-        sound_instances[kind][index] = NULL;
-        free(inst);        
+        inst->exists = false;
     }
 }
+
 
 //---------------------------------------------------------------------------//

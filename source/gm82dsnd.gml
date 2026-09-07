@@ -1,12 +1,15 @@
 #define __gm82dsound_gml_init
-    globalvar __gm82dsound_version; __gm82dsound_version=101
+    globalvar __gm82dsound_version; __gm82dsound_version=010
     
+    object_event_add(gm82core_object,ev_create,0,"__dsound_init(window_handle())")
     object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
 
 
 #define sound_add
     ///sound_add(fname,kind,preload)
-    
+    return __dsound_add_file(argument0)
+
+
 #define sound_background_tempo
     ///sound_background_tempo(factor)
     
