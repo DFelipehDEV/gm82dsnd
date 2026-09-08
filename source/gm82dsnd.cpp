@@ -64,6 +64,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <cmath>
 #include <windows.h>
 #include <dsound.h>
 
@@ -191,10 +192,11 @@ extern void debug_message(const wchar_t* msg, int value) {
         int loop_a;
         int loop_b;
         int inst_count;
+        int frequency;
     };
 
     struct SoundInstance {
-        SoundResource sound;
+        SoundResource* sound;
         LPDIRECTSOUNDBUFFER clone_buffer;
         int index;
         float volume;
@@ -240,6 +242,8 @@ int dsound_get_free_resource();
 int dsound_get_free_instance();
 int dsound_play(int, bool, double, double, double);
 void dsound_stop_inst(int);
+void dsound_inst_free(SoundInstance*);
+LONG dsound_volume_formula(double);
 
 
 //---------------------------------------------------------------------------//
@@ -351,6 +355,24 @@ void dsound_thread_update() {
 void dsound_frame_update(int frame_ms) {
     //gml frame
     //update instance life and cleanup here
+    
+    SoundInstance* inst;
+    
+    REPEAT(i,INSTANCE_COUNT) {
+        REPEAT(kind,4) {
+            inst = &sound_instances[kind][i];
+            if (inst -> exists) {            
+                inst -> age++;
+                if (inst -> playing && !inst -> looping) {
+                    DWORD status = 0;
+                    inst -> clone_buffer -> GetStatus(&status);
+                    if (!(status & DSBSTATUS_PLAYING)) {
+                        dsound_inst_free(inst);
+                    }
+                }
+            }
+        }
+    }
 }
 
 int dsound_get_free_resource() {
@@ -363,8 +385,8 @@ int dsound_get_free_resource() {
 int dsound_get_free_instance(int kind) {
     SoundInstance* inst;
     SoundInstance* oldest;
-    int oldest_id;
-    oldest = &sound_instances[kind][0];
+    int oldest_id = 0;
+    oldest = &sound_instances[kind][oldest_id];
     REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
         if (!inst -> exists) return i;
@@ -374,7 +396,7 @@ int dsound_get_free_instance(int kind) {
             oldest_id = i;
         }
     }
-    dsound_stop_inst(oldest_id);
+    dsound_inst_free(oldest);
     return oldest_id;
 }
 
@@ -469,58 +491,61 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         sound -> exists = true;
         sound -> loaded = true;
         sound -> persistent = false;
+        sound -> frequency = samplerate;
         sound -> volume = 1.0;
         sound -> pan = 0.0;
         sound -> pitch = 1.0;
         sound -> loop_a = 0;
         sound -> loop_b = 0;
-        sound -> inst_count = 0;   
+        sound -> inst_count = 0;
     
     return id;
 }
 
-int dsound_play(int index, bool loop, double pitch, double vol, double pan) {
+LONG dsound_volume_formula(double vol) {
+    //decode log volume used by directsound
+    return (LONG)(3333.3 * log10(max(0.001,min(1.0,vol))));
+}
+
+int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundResource* sound = &sound_resources[index];
     if (!sound -> exists) return ERROR_NON_EXIST;
     
-    
     int kind = sound -> kind;
     
-    int id = dsound_get_free_instance(kind);
-    
     LPDIRECTSOUNDBUFFER clone;
-        
-    vibe_check(Device -> DuplicateSoundBuffer(sound -> buffer,&clone));
+    vibe_check(Device -> DuplicateSoundBuffer(sound -> buffer, &clone));
     
-    clone -> SetVolume((LONG)(10000.0*(1.0-vol)));
-    clone -> SetPan((LONG)(pan*10000.0));
-    //clone -> SetVolume(vol);
+    clone -> SetVolume(dsound_volume_formula(vol));
+    clone -> SetPan((LONG)(pan * 10000.0));
+    clone -> SetFrequency((DWORD)(pitch * sound -> frequency));
 
+    SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
+    
+    inst -> sound = sound;
+    inst -> clone_buffer = clone;
+    inst -> index = last_instance_id;
+    inst -> volume = vol;
+    inst -> pan = pan;
+    inst -> pitch = pitch;
+    inst -> volume_from = vol;
+    inst -> volume_to = vol;
+    inst -> fade_length = 0;
+    inst -> fade_amount = 0;
+    inst -> age = 0;
+    inst -> exists = true;
+    inst -> playing = true;
+    inst -> looping = loop;
+    
+    last_instance_id++;
+    
     if (loop) {
         vibe_check(clone -> Play(0, 0, DSBPLAY_LOOPING));
     } else {
         vibe_check(clone -> Play(0, 0, 0));
     }
     
-    
-    
-    //instantiate etc.
-    
-    /*
-            
-        
-        LPDIRECTSOUNDBUFFER clone;
-        
-        vibe_check(Device -> DuplicateSoundBuffer(secbuffer,&clone));
-    
-        
-        vibe_check(clone -> Play(0, 0, 0)); //DSBPLAY_LOOPING
-    */
-    
-    
-    last_instance_id++;
-    
-    return id;
+    return last_instance_id;
 }
 
 bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundInstance* get_inst) {
@@ -531,7 +556,7 @@ bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundI
     
     REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
-        if (inst -> index == iid) {
+        if (inst -> exists && inst -> index == iid) {
             *get_kind = kind;
             *get_index = i;
             get_inst = inst;
@@ -547,9 +572,16 @@ void dsound_stop_inst(int iid) {
     SoundInstance* inst = NULL;
     
     if (dsound_find_instance_from_iid(iid, &kind, &index, inst)) {
-        inst->sound.inst_count--;
-        //inst -> clone_buffer -> free idk
-        inst->exists = false;
+        dsound_inst_free(inst);
+    }
+}
+
+void dsound_inst_free(SoundInstance* inst) {
+    if (inst -> exists) {
+        inst -> sound -> inst_count--;
+        inst -> clone_buffer -> Stop();
+        inst -> clone_buffer -> Release();
+        inst -> exists = false;
     }
 }
 

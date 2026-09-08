@@ -43,7 +43,7 @@
 #define sound_loop
     ///sound_loop(index)
     
-    __dsound_play(argument0,1,1,0,0)
+    __dsound_play(argument0,1,1,0,1)
     
 #define sound_pan
     ///sound_pan(index,value)
@@ -51,7 +51,12 @@
 #define sound_play
     ///sound_play(index)
     
-    __dsound_play(argument0,0,1,0,0)
+    __dsound_play(argument0,0,1,0,1)
+        
+#define sound_play_ext
+    ///sound_play_ext(index,vol,pan,pitch)
+    
+    __dsound_play(argument0,0,argument1,argument2,argument3)
     
 #define sound_replace
     ///sound_replace(index,fname,kind,preload)
