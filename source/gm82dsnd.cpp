@@ -40,12 +40,22 @@
   Notes
   -----
   
-  "Effects might not work smoothly on very small buffers, and Microsoft DirectSound does not permit the creation of effects-capable buffers that hold less than 150 (BufferSize.FxMin) milliseconds of data."
   https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee418041(v=vs.85)
   
   "There is a known issue with volume levels of duplicated buffers. The duplicated buffer will play at full volume unless you change the volume to a different value than the original buffer's volume setting. If the volume stays the same (even if you explicitly set the same volume in the duplicated buffer with a IDirectSoundBuffer8::SetVolume call), the buffer will play at full volume regardless. To work around this problem, immediately set the volume of the duplicated buffer to something slightly different than what it was, even if you change it one millibel. The volume may then be immediately set back again to the original desired value."
   
   https://github.com/libxmp/libxmp
+  
+  HRESULT hr;
+  DWORD dwResults;
+  LPDIRECTSOUNDBUFFER8 secbuffer8 = (LPDIRECTSOUNDBUFFER8)secbuffer;       
+  DSEFFECTDESC dsEffect;
+  memset(&dsEffect, 0, sizeof(DSEFFECTDESC));
+  dsEffect.dwSize = sizeof(DSEFFECTDESC);
+  dsEffect.dwFlags = 0;
+  dsEffect.guidDSFXClass = GUID_DSFX_STANDARD_ECHO;
+  vibe_check(secbuffer8 -> SetFX(1, &dsEffect, &dwResults));
+  vibe_check(secbuffer8 -> Play(0, 0, 0));
   
   
 */
@@ -58,6 +68,7 @@
 #include <dsound.h>
 
 #pragma comment(lib,"dsound.lib")
+#pragma comment(lib,"Dxguid.lib")
 #pragma comment(lib,"Winmm.lib")
 
 #define GMREAL extern "C" __declspec(dllexport) double __cdecl
@@ -221,12 +232,12 @@ void dll_init(HWND);
 void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD);
 
 void dsound_thread_update();
-int dsound_add_file(char*);
-int dsound_add_mem(char*, int);
+int dsound_add_file(char*, int);
+int dsound_add_mem(char*, int, int);
 void dsound_frame_update(int);
 int dsound_get_free_resource();
 int dsound_get_free_instance();
-int dsound_play(int, bool);
+int dsound_play(int, bool, double, double, double);
 void dsound_stop_inst(int);
 
 
@@ -281,7 +292,7 @@ void dll_init(HWND hwnd) {
             NULL
         ));
         vibe_check(PrimaryBuffer -> Play(0, 0, DSBPLAY_LOOPING));
-
+    
     
     //set up timer callback
         timeSetEvent(
@@ -314,16 +325,16 @@ GMREAL __dsound_update(double frame_ms) {
     return 0;
 }
 
-GMREAL __dsound_add_file(char* fname) {
-    return (double)dsound_add_file(fname);
+GMREAL __dsound_add_file(char* fname, double kind) {
+    return (double)dsound_add_file(fname, (int)kind);
 }
 
-GMREAL __dsound_add_mem(double buffer, double length) {
-    return (double)dsound_add_mem((char*)(int)buffer, (int)length);
+GMREAL __dsound_add_mem(double buffer, double length, double kind) {
+    return (double)dsound_add_mem((char*)(int)buffer, (int)length, (int) kind);
 }
 
-GMREAL __dsound_play(double index, double loop) {
-    return (double)dsound_play((int)index, (loop>0.5));
+GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
+    return (double)dsound_play((int)index, (loop>0.5), vol, pan, pitch);
 }
 
 
@@ -366,7 +377,7 @@ int dsound_get_free_instance(int kind) {
     return oldest_id;
 }
 
-int dsound_add_file(char* fname) {
+int dsound_add_file(char* fname, int kind) {
     //load file
         FILE* file = fopen(fname, "rb");
         if (file == NULL) return ERROR_NON_EXIST;
@@ -378,16 +389,18 @@ int dsound_add_file(char* fname) {
         fread(buffer, size, 1, file);
         fclose(file);
     
-    int id = dsound_add_mem(buffer,size);
+    int id = dsound_add_mem(buffer, size, kind);
     
     free(buffer);
     
     return id;
 }
 
-int dsound_add_mem(char* buffer, int length) {
+int dsound_add_mem(char* buffer, int length, int kind) {
     int id = dsound_get_free_resource();
     ASSERT(id);
+    
+    LPDIRECTSOUNDBUFFER secbuffer;
     
     //find file type from magic number
     if (memcmp("RIF",buffer,3)==0) {
@@ -397,15 +410,13 @@ int dsound_add_mem(char* buffer, int length) {
         uint32_t data_length = *(uint32_t*)(buffer+24+format->FormatLength);
         char* data = (char*)(buffer+24+format->FormatLength);
         
-        LPDIRECTSOUNDBUFFER secbuffer;
-        
         //debug_message(L"sample rate %i",format -> SampleRate);
         //debug_message(L"channels %i",format -> Channels);
         //debug_message(L"bits %i",format -> BitsPerSample);        
       
         vibe_check(Device -> CreateSoundBuffer(
             describe_buffer(
-                DSBCAPS_GLOBALFOCUS | DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY | DSBCAPS_CTRLFX,
+                DSBCAPS_GLOBALFOCUS | DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY,
                 describe_format(
                     format -> SampleRate,
                     format -> Channels,
@@ -436,9 +447,6 @@ int dsound_add_mem(char* buffer, int length) {
             lock_chunk, lock_size,
             NULL, NULL
         ));
-        
-        vibe_check(secbuffer -> Play(0, 0, 0));
-        
     }
     if (memcmp("Ogg",buffer,3)==0) {
         //read ogg
@@ -448,18 +456,59 @@ int dsound_add_mem(char* buffer, int length) {
     }
     
     
-    
+    SoundResource* sound = &sound_resources[id];    
+    sound -> buffer = secbuffer;
+    sound -> kind = kind;
+    sound -> exists = true;
+    sound -> loaded = true;
+    sound -> volume = 1.0;
+    sound -> pan = 0.0;
+    sound -> pitch = 1.0;
+    sound -> loop_a = 0;
+    sound -> loop_b = 0;
+    sound -> inst_count = 0;   
     
     return id;
 }
 
-int dsound_play(int index, bool loop) {
+int dsound_play(int index, bool loop, double pitch, double vol, double pan) {
     SoundResource* sound = &sound_resources[index];
+    if (!sound -> exists) return ERROR_NON_EXIST;
+    
+    
     int kind = sound -> kind;
     
     int id = dsound_get_free_instance(kind);
     
+    LPDIRECTSOUNDBUFFER clone;
+        
+    vibe_check(Device -> DuplicateSoundBuffer(sound -> buffer,&clone));
+    
+    clone -> SetVolume((LONG)(10000.0*(1.0-vol)));
+    clone -> SetPan((LONG)(pan*10000.0));
+    //clone -> SetVolume(vol);
+
+    if (loop) {
+        vibe_check(clone -> Play(0, 0, DSBPLAY_LOOPING));
+    } else {
+        vibe_check(clone -> Play(0, 0, 0));
+    }
+    
+    
+    
     //instantiate etc.
+    
+    /*
+            
+        
+        LPDIRECTSOUNDBUFFER clone;
+        
+        vibe_check(Device -> DuplicateSoundBuffer(secbuffer,&clone));
+    
+        
+        vibe_check(clone -> Play(0, 0, 0)); //DSBPLAY_LOOPING
+    */
+    
     
     last_instance_id++;
     

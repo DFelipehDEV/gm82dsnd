@@ -7,7 +7,7 @@
 
 #define sound_add
     ///sound_add(fname,kind,preload)
-    return __dsound_add_file(argument0)
+    return __dsound_add_file(argument0,argument1)
 
 
 #define sound_background_tempo
@@ -43,11 +43,15 @@
 #define sound_loop
     ///sound_loop(index)
     
+    __dsound_play(argument0,1,1,0,0)
+    
 #define sound_pan
     ///sound_pan(index,value)
     
 #define sound_play
     ///sound_play(index)
+    
+    __dsound_play(argument0,0,1,0,0)
     
 #define sound_replace
     ///sound_replace(index,fname,kind,preload)
