@@ -184,6 +184,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         int kind;
         bool exists = 0;
         bool loaded;
+        bool persistent;
         float volume;
         float pan;
         float pitch;
@@ -206,7 +207,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         int age;
         bool exists;
         bool playing;
-        bool looping;
+        bool looping;        
     };
 
 
@@ -401,44 +402,57 @@ int dsound_add_mem(char* buffer, int length, int kind) {
     ASSERT(id);
     
     LPDIRECTSOUNDBUFFER secbuffer;
+    int samplerate, channels, bits;
+    uint32_t data_length;
+    char* data;
     
     //find file type from magic number
     if (memcmp("RIF",buffer,3)==0) {
         //read wav properties
-        RiffWaveFmt* format = (RiffWaveFmt*)buffer;
+            RiffWaveFmt* format = (RiffWaveFmt*)buffer;
         
-        uint32_t data_length = *(uint32_t*)(buffer+24+format->FormatLength);
-        char* data = (char*)(buffer+24+format->FormatLength);
+            samplerate = format -> SampleRate;
+            channels = format -> Channels;
+            bits = format -> BitsPerSample;
         
-        //debug_message(L"sample rate %i",format -> SampleRate);
-        //debug_message(L"channels %i",format -> Channels);
-        //debug_message(L"bits %i",format -> BitsPerSample);        
-      
+        //navigate wav blocks until we get to the data block
+            data = (char*)(buffer + 16);
+            data_length = format -> FormatLength;
+            do {        
+                data += data_length + 8;
+                data_length = *(uint32_t*)(data);
+            } while (memcmp("data", data - 4, 4) != 0 && data-buffer < length - 16);
+            data += 4;
+            //debug_message(L"sample rate %i",format -> SampleRate);
+            //debug_message(L"channels %i",format -> Channels);
+            //debug_message(L"bits %i",format -> BitsPerSample);        
+            //debug_message(L"data length %i",data_length);
+    } else if (memcmp("Ogg",buffer,3)==0) {
+        //read ogg
+    } else if (memcmp("ID3",buffer,3)==0) {
+        //read mp3
+    } else {
+        //unrecognized file type
+        return ERROR_FAIL_LOAD;
+    }
+    
+    //create the secondary buffer and fill it with pcm data
         vibe_check(Device -> CreateSoundBuffer(
             describe_buffer(
                 DSBCAPS_GLOBALFOCUS | DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY,
-                describe_format(
-                    format -> SampleRate,
-                    format -> Channels,
-                    format -> BitsPerSample
-                ),
+                describe_format(samplerate, channels, bits),
                 data_length
             ),
             &secbuffer,
             NULL
         ));
         
-        //debug_message(L"created buffer of length %i",data_length);
-        
         void* lock_chunk;
         DWORD lock_size;
-        
         vibe_check(secbuffer -> Lock(
-            0,
-            data_length,
+            0, data_length,
             &lock_chunk, &lock_size,
-            NULL, NULL,
-            0
+            NULL, NULL, 0
         ));
         
         memcpy(lock_chunk, data, lock_size);
@@ -447,26 +461,20 @@ int dsound_add_mem(char* buffer, int length, int kind) {
             lock_chunk, lock_size,
             NULL, NULL
         ));
-    }
-    if (memcmp("Ogg",buffer,3)==0) {
-        //read ogg
-    }
-    if (memcmp("ID3",buffer,3)==0) {
-        //read mp3
-    }
     
-    
-    SoundResource* sound = &sound_resources[id];    
-    sound -> buffer = secbuffer;
-    sound -> kind = kind;
-    sound -> exists = true;
-    sound -> loaded = true;
-    sound -> volume = 1.0;
-    sound -> pan = 0.0;
-    sound -> pitch = 1.0;
-    sound -> loop_a = 0;
-    sound -> loop_b = 0;
-    sound -> inst_count = 0;   
+    //create the sound resource
+        SoundResource* sound = &sound_resources[id];    
+        sound -> buffer = secbuffer;
+        sound -> kind = kind;
+        sound -> exists = true;
+        sound -> loaded = true;
+        sound -> persistent = false;
+        sound -> volume = 1.0;
+        sound -> pan = 0.0;
+        sound -> pitch = 1.0;
+        sound -> loop_a = 0;
+        sound -> loop_b = 0;
+        sound -> inst_count = 0;   
     
     return id;
 }
