@@ -44,10 +44,32 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_get_kind",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_global_volume",
 					"extname": "",
 					"calltype": 2,
 					"helpline": "sound_global_volume(value)",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_isplaying",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
 					"hidden": true,
 					"argtypes": [
 						2
@@ -181,6 +203,28 @@
 					"returntype": 2
 				},
 				{
+					"name": "__dsound_exists",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_getkind",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "__dsound_glob_vol",
 					"extname": "",
 					"calltype": 12,
@@ -201,6 +245,17 @@
 					"returntype": 2
 				},
 				{
+					"name": "__dsound_insts",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "__dsound_play",
 					"extname": "",
 					"calltype": 12,
@@ -217,17 +272,6 @@
 				},
 				{
 					"name": "__dsound_update",
-					"extname": "",
-					"calltype": 12,
-					"helpline": "",
-					"hidden": true,
-					"argtypes": [
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "__dsound_exists",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",

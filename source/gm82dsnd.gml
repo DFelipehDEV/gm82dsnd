@@ -31,15 +31,15 @@
     ///sound_discard(index)
     
 #define sound_exists
-    ///sound_exists(ind)
-    
+    ///sound_exists(ind)    
     return __dsound_exists(argument0)
     
 #define sound_fade
     ///sound_fade(index,value,time)
     
 #define sound_get_kind
-    ///sound_get_kind(ind)
+    ///sound_get_kind(ind)    
+    return __dsound_getkind(argument0)
     
 #define sound_get_name
     ///sound_get_name(ind)
@@ -54,10 +54,10 @@
 
 #define sound_isplaying
     ///sound_isplaying(index)
+    return __dsound_insts(argument0)
     
 #define sound_loop
-    ///sound_loop(index)
-    
+    ///sound_loop(index)    
     __dsound_play(argument0,1,1,0,1)
 
 
@@ -65,14 +65,12 @@
     ///sound_pan(index,value)
     
 #define sound_play
-    ///sound_play(index)
-    
+    ///sound_play(index)    
     __dsound_play(argument0,0,1,0,1)
 
 
 #define sound_play_ext
-    ///sound_play_ext(index,vol,pan,pitch)
-    
+    ///sound_play_ext(index,vol,pan,pitch)    
     __dsound_play(argument0,0,argument1,argument2,argument3)
 
 
