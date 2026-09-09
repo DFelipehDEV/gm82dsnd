@@ -142,10 +142,6 @@ extern void debug_message(const wchar_t* msg, int value) {
         uint32_t BytesPerSec;
         uint16_t BlockAlign;
         uint16_t BitsPerSample;
-        uint16_t BlockSize;
-        uint16_t ValidBitsPerSample;
-        uint32_t ChannelMask;
-        char SubFormat[18];
     };
     #pragma pack(pop)
 
@@ -373,6 +369,10 @@ GMREAL __dsound_insts(double index) {
     return sound_resources[(int)index].inst_count;
 }
 
+GMREAL __dsound_get_builtin_count() {
+    return (double)*gm_sound_count;
+}
+
 
 //---------------------------------------------------------------------------//
 //internals
@@ -432,16 +432,15 @@ int dsound_get_free_instance(int kind) {
 }
 
 int dsound_add_file(char* fname, int kind) {
-    //load file
-        FILE* file = fopen(fname, "rb");
-        if (file == NULL) return ERROR_NON_EXIST;
-        
-        fseek(file, 0, SEEK_END);
-        int size = ftell(file);
-        fseek(file, 0, SEEK_SET);        
-        char* buffer = (char*)malloc(size);
-        fread(buffer, size, 1, file);
-        fclose(file);
+    FILE* file = fopen(fname, "rb");
+    if (file == NULL) return ERROR_NON_EXIST;
+    
+    fseek(file, 0, SEEK_END);
+    int size = ftell(file);
+    fseek(file, 0, SEEK_SET);        
+    char* buffer = (char*)malloc(size);
+    fread(buffer, size, 1, file);
+    fclose(file);
     
     int id = dsound_add_mem(buffer, size, kind);
     

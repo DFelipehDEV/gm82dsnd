@@ -16,7 +16,8 @@
     var __index;
     index=__dsound_add_file(argument0,argument1)
     
-    if (index<0) show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-index],0)
+    if (index<0)
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-index],false)
     
     return index
 
@@ -74,6 +75,9 @@
     __dsound_play(argument0,0,argument1,argument2,argument3)
 
 
+#define sound_fade
+    ///sound_fade(index,value,time)
+    
 #define sound_replace
     ///sound_replace(index,fname,kind,preload)
     
@@ -97,15 +101,25 @@
 #define sound_set_pos
 #define sound_set_loop
 
+#define __dsound_error_effects
+    show_error("8.2 DirectSound error: Effects are not supported.",false)
 
 #define sound_effect_chorus
+    __dsound_error_effects()
 #define sound_effect_compressor
+    __dsound_error_effects()
 #define sound_effect_echo
+    __dsound_error_effects()
 #define sound_effect_equalizer
+    __dsound_error_effects()
 #define sound_effect_flanger
+    __dsound_error_effects()
 #define sound_effect_gargle
+    __dsound_error_effects()
 #define sound_effect_reverb
+    __dsound_error_effects()
 #define sound_effect_set
+    __dsound_error_effects()
 
 #define sound_3d_set_sound_cone
 #define sound_3d_set_sound_distance
