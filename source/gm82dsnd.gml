@@ -1,13 +1,24 @@
 #define __gm82dsound_gml_init
     globalvar __gm82dsound_version; __gm82dsound_version=010
     
-    object_event_add(gm82core_object,ev_create,0,"__dsound_init(window_handle())")
     object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
+    
+    globalvar __dsound_error;
+    
+    __dsound_error[1]="Generic DirectSound error."
+    __dsound_error[2]="Non-existing index."
+    __dsound_error[3]="Failure loading sound."
+    __dsound_error[4]="No more space to add sounds. You may have a memory leak."
 
 
 #define sound_add
     ///sound_add(fname,kind,preload)
-    return __dsound_add_file(argument0,argument1)
+    var __index;
+    index=__dsound_add_file(argument0,argument1)
+    
+    if (index<0) show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-index],0)
+    
+    return index
 
 
 #define sound_background_tempo
@@ -36,7 +47,9 @@
     
 #define sound_global_volume
     ///sound_global_volume(value)
-    
+    __dsound_glob_vol(argument0)
+
+
 #define sound_isplaying
     ///sound_isplaying(index)
     
@@ -44,7 +57,8 @@
     ///sound_loop(index)
     
     __dsound_play(argument0,1,1,0,1)
-    
+
+
 #define sound_pan
     ///sound_pan(index,value)
     
@@ -52,12 +66,14 @@
     ///sound_play(index)
     
     __dsound_play(argument0,0,1,0,1)
-        
+
+
 #define sound_play_ext
     ///sound_play_ext(index,vol,pan,pitch)
     
     __dsound_play(argument0,0,argument1,argument2,argument3)
-    
+
+
 #define sound_replace
     ///sound_replace(index,fname,kind,preload)
     

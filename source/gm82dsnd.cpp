@@ -216,11 +216,11 @@ extern void debug_message(const wchar_t* msg, int value) {
 //constants
     #define THREAD_MS 15
     #define RESOURCE_COUNT 100000
-    #define INSTANCE_COUNT 100
+    #define INSTANCE_COUNT 64
 
 
 //global variables
-    float global_volume;
+    double global_volume = 0.7;
     int last_instance_id = RESOURCE_COUNT;
 
     SoundResource sound_resources[RESOURCE_COUNT];
@@ -231,7 +231,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //function prototypes
 
 
-void dll_init(HWND);
+void dll_init();
 void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD);
 
 void dsound_thread_update();
@@ -244,6 +244,8 @@ int dsound_play(int, bool, double, double, double);
 void dsound_stop_inst(int);
 void dsound_inst_free(SoundInstance*);
 LONG dsound_volume_formula(double);
+LONG dsound_pan_formula(double);
+void dsound_set_global_volume(double);
 
 
 //---------------------------------------------------------------------------//
@@ -278,14 +280,22 @@ WAVEFORMATEX* describe_format(int samplerate, int channels, int bits) {
     return &FormatDescriptor;
 }
 
-void dll_init(HWND hwnd) {
+void dll_init() {
     //initializes all systems
     
     
     //directsound
         vibe_check(DirectSoundCreate8(NULL, &Device, NULL));
         
-        vibe_check(Device -> SetCooperativeLevel(hwnd, DSSCL_PRIORITY));
+        //you're supposed to use your application's window here but the
+        //desktop window works and i haven't been able to find any problems.
+        //using the desktop prevents the extension from having to wait for
+        //the runner to create a window, which allows full extension usage
+        //during the first room's create events.
+        vibe_check(Device -> SetCooperativeLevel(
+            GetDesktopWindow(),
+            DSSCL_PRIORITY
+        ));
     
         vibe_check(Device -> CreateSoundBuffer(
             describe_buffer(
@@ -320,8 +330,8 @@ void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD) {
 //Game Maker interface
 
 
-GMREAL __dsound_init(double hwnd_real) {
-    dll_init((HWND)(int)hwnd_real);    
+GMREAL __dsound_init() {
+    dll_init();    
     return 0;
 }
 
@@ -340,6 +350,11 @@ GMREAL __dsound_add_mem(double buffer, double length, double kind) {
 
 GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
     return (double)dsound_play((int)index, (loop>0.5), vol, pan, pitch);
+}
+
+GMREAL __dsound_glob_vol(double vol) {
+    dsound_set_global_volume(vol);
+    return 0;
 }
 
 
@@ -444,11 +459,7 @@ int dsound_add_mem(char* buffer, int length, int kind) {
                 data += data_length + 8;
                 data_length = *(uint32_t*)(data);
             } while (memcmp("data", data - 4, 4) != 0 && data-buffer < length - 16);
-            data += 4;
-            //debug_message(L"sample rate %i",format -> SampleRate);
-            //debug_message(L"channels %i",format -> Channels);
-            //debug_message(L"bits %i",format -> BitsPerSample);        
-            //debug_message(L"data length %i",data_length);
+            data += 4;            
     } else if (memcmp("Ogg",buffer,3)==0) {
         //read ogg
     } else if (memcmp("ID3",buffer,3)==0) {
@@ -457,6 +468,11 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         //unrecognized file type
         return ERROR_FAIL_LOAD;
     }
+    
+    //debug_message(L"sample rate %i",samplerate);
+    //debug_message(L"channels %i",channels);
+    //debug_message(L"bits %i",bits);        
+    //debug_message(L"data length %i",data_length);
     
     //create the secondary buffer and fill it with pcm data
         vibe_check(Device -> CreateSoundBuffer(
@@ -507,17 +523,24 @@ LONG dsound_volume_formula(double vol) {
     return (LONG)(3333.3 * log10(max(0.001,min(1.0,vol))));
 }
 
+LONG dsound_pan_formula(double pan) {
+    //decode log volume used by directsound
+    if (pan>=0) return (LONG)(-3333.3 * log10(max(0.001,min(1.0,1.0-pan))));
+    else return (LONG)(3333.3 * log10(max(0.001,min(1.0,1.0+pan))));
+}
+
 int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundResource* sound = &sound_resources[index];
     if (!sound -> exists) return ERROR_NON_EXIST;
     
     int kind = sound -> kind;
+    double volume = vol * global_volume;
     
     LPDIRECTSOUNDBUFFER clone;
     vibe_check(Device -> DuplicateSoundBuffer(sound -> buffer, &clone));
     
-    clone -> SetVolume(dsound_volume_formula(vol));
-    clone -> SetPan((LONG)(pan * 10000.0));
+    clone -> SetVolume(dsound_volume_formula(volume));
+    clone -> SetPan(dsound_pan_formula(pan));
     clone -> SetFrequency((DWORD)(pitch * sound -> frequency));
 
     SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
@@ -525,11 +548,11 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     inst -> sound = sound;
     inst -> clone_buffer = clone;
     inst -> index = last_instance_id;
-    inst -> volume = vol;
+    inst -> volume = volume;
     inst -> pan = pan;
     inst -> pitch = pitch;
-    inst -> volume_from = vol;
-    inst -> volume_to = vol;
+    inst -> volume_from = volume;
+    inst -> volume_to = volume;
     inst -> fade_length = 0;
     inst -> fade_amount = 0;
     inst -> age = 0;
@@ -565,6 +588,10 @@ bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundI
     }
     
     return false;
+}
+
+void dsound_set_global_volume(double vol) {
+    global_volume = min(1.0,max(0.0,vol));
 }
 
 void dsound_stop_inst(int iid) {

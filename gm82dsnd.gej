@@ -33,6 +33,17 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_global_volume",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_global_volume(value)",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_loop",
 					"extname": "",
 					"calltype": 2,
@@ -130,7 +141,7 @@
 			"filename": "gm82dsnd.dll",
 			"origname": "build\\Release\\gm82dsnd.dll",
 			"kind": 1,
-			"init": "",
+			"init": "__dsound_init",
 			"final": "",
 			"functions": [
 				{
@@ -159,7 +170,7 @@
 					"returntype": 2
 				},
 				{
-					"name": "__dsound_init",
+					"name": "__dsound_glob_vol",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
@@ -170,14 +181,12 @@
 					"returntype": 2
 				},
 				{
-					"name": "__dsound_update",
+					"name": "__dsound_init",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
 					"hidden": true,
-					"argtypes": [
-						2
-					],
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
@@ -191,6 +200,17 @@
 						2,
 						2,
 						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_update",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
 						2
 					],
 					"returntype": 2
