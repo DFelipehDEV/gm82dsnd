@@ -3,12 +3,24 @@
     
     object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
     
-    globalvar __dsound_error;
+    globalvar __dsound_error,__dsound_map;
     
     __dsound_error[1]="Generic DirectSound error."
     __dsound_error[2]="Non-existing index."
     __dsound_error[3]="Failure loading sound."
     __dsound_error[4]="No more space to add sounds. You may have a memory leak."
+    
+    __dsound_map=ds_map_create()
+
+
+#define __dsound_name_parser
+    //converts a string name to sound index, for "filename" sound id support
+    if (is_string(argument0)) {
+        if (ds_map_exists(__dsound_map,argument0))
+            return ds_map_find_value(__dsound_map,argument0)
+        return noone
+    }
+    return argument0
 
 
 #define sound_add
@@ -16,8 +28,11 @@
     var __index;
     index=__dsound_add_file(argument0,argument1)
     
-    if (index<0)
+    if (index<0) {
         show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-index],false)
+    } else {
+        ds_map_add(__dsound_map,filename_change_ext(filename_name(argument0),""),index)
+    }
     
     return index
 
@@ -32,15 +47,15 @@
     ///sound_discard(index)
     
 #define sound_exists
-    ///sound_exists(ind)    
-    return __dsound_exists(argument0)
+    ///sound_exists(ind)
+    return __dsound_exists(__dsound_name_parser(argument0))
     
 #define sound_fade
     ///sound_fade(index,value,time)
     
 #define sound_get_kind
     ///sound_get_kind(ind)    
-    return __dsound_getkind(argument0)
+    return __dsound_getkind(__dsound_name_parser(argument0))
     
 #define sound_get_name
     ///sound_get_name(ind)
@@ -55,11 +70,11 @@
 
 #define sound_isplaying
     ///sound_isplaying(index)
-    return __dsound_insts(argument0)
+    return __dsound_insts(__dsound_name_parser(argument0))
     
 #define sound_loop
     ///sound_loop(index)    
-    __dsound_play(argument0,1,1,0,1)
+    __dsound_play(__dsound_name_parser(argument0),1,1,0,1)
 
 
 #define sound_pan
@@ -67,12 +82,12 @@
     
 #define sound_play
     ///sound_play(index)    
-    __dsound_play(argument0,0,1,0,1)
+    __dsound_play(__dsound_name_parser(argument0),0,1,0,1)
 
 
 #define sound_play_ext
     ///sound_play_ext(index,vol,pan,pitch)    
-    __dsound_play(argument0,0,argument1,argument2,argument3)
+    __dsound_play(__dsound_name_parser(argument0),0,argument1,argument2,argument3)
 
 
 #define sound_fade
