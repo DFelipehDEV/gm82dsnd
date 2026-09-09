@@ -246,6 +246,7 @@ void dsound_inst_free(SoundInstance*);
 LONG dsound_volume_formula(double);
 LONG dsound_pan_formula(double);
 void dsound_set_global_volume(double);
+bool dsound_sound_exists(int);
 
 
 //---------------------------------------------------------------------------//
@@ -355,6 +356,10 @@ GMREAL __dsound_play(double index, double loop, double vol, double pan, double p
 GMREAL __dsound_glob_vol(double vol) {
     dsound_set_global_volume(vol);
     return 0;
+}
+
+GMREAL __dsound_exists(double index) {
+    return (double)dsound_sound_exists((int)index);
 }
 
 
@@ -610,6 +615,11 @@ void dsound_inst_free(SoundInstance* inst) {
         inst -> clone_buffer -> Release();
         inst -> exists = false;
     }
+}
+
+bool dsound_sound_exists(int index) {
+    if (index < 0 || index >= RESOURCE_COUNT) return false;
+    return sound_resources[index].exists;
 }
 
 

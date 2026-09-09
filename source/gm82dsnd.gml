@@ -33,6 +33,8 @@
 #define sound_exists
     ///sound_exists(ind)
     
+    return __dsound_exists(argument0)
+    
 #define sound_fade
     ///sound_fade(index,value,time)
     

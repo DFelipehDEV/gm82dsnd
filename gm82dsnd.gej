@@ -33,6 +33,17 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_exists",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_global_volume",
 					"extname": "",
 					"calltype": 2,
@@ -206,6 +217,17 @@
 				},
 				{
 					"name": "__dsound_update",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_exists",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
