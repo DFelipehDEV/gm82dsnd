@@ -25,24 +25,22 @@
   Todo
   ----
   
-- load sounds from runner memory, respecting the preload flag.
+- load sounds from runner memory.
 - ability to name sounds, and use the names where functions expect indexes.
   this means all gml functions must check the type of the index argument.
   sounds added from file are automatically named with the filename, just like
   the old sound extension. this is implemented via a dsmap in gml.
 - "persistent" sounds that stay between rooms, any sounds that are not
   persistent will stop when changing rooms.
-- ability to discard and restore sounds for memory management.
-- full gm effect support.
 - tracker support via libxmp.
 
 
   Notes
   -----
   
-  https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee418041(v=vs.85)
-  
-  "There is a known issue with volume levels of duplicated buffers. The duplicated buffer will play at full volume unless you change the volume to a different value than the original buffer's volume setting. If the volume stays the same (even if you explicitly set the same volume in the duplicated buffer with a IDirectSoundBuffer8::SetVolume call), the buffer will play at full volume regardless. To work around this problem, immediately set the volume of the duplicated buffer to something slightly different than what it was, even if you change it one millibel. The volume may then be immediately set back again to the original desired value."
+  instance values for vol pan pitch are multiplied with the sound resource's values.
+  this means that a sound that has a volume of 0.5, when played at half volume, will create
+  an instance with 0.25 volume.
   
   https://github.com/libxmp/libxmp
   
@@ -54,8 +52,8 @@
   dsEffect.dwSize = sizeof(DSEFFECTDESC);
   dsEffect.dwFlags = 0;
   dsEffect.guidDSFXClass = GUID_DSFX_STANDARD_ECHO;
-  vibe_check(secbuffer8 -> SetFX(1, &dsEffect, &dwResults));
-  vibe_check(secbuffer8 -> Play(0, 0, 0));
+  vibe_check(secbuffer8->SetFX(1, &dsEffect, &dwResults));
+  vibe_check(secbuffer8->Play(0, 0, 0));
   
   
 */
@@ -288,12 +286,12 @@ void dll_init() {
         //using the desktop prevents the extension from having to wait for
         //the runner to create a window, which allows full extension usage
         //during the first room's create events.
-        vibe_check(Device -> SetCooperativeLevel(
+        vibe_check(Device->SetCooperativeLevel(
             GetDesktopWindow(),
             DSSCL_PRIORITY
         ));
     
-        vibe_check(Device -> CreateSoundBuffer(
+        vibe_check(Device->CreateSoundBuffer(
             describe_buffer(
                 DSBCAPS_PRIMARYBUFFER,
                 NULL,
@@ -302,7 +300,7 @@ void dll_init() {
             &PrimaryBuffer,
             NULL
         ));
-        vibe_check(PrimaryBuffer -> Play(0, 0, DSBPLAY_LOOPING));
+        vibe_check(PrimaryBuffer->Play(0, 0, DSBPLAY_LOOPING));
     
     
     //set up timer callback
@@ -392,11 +390,11 @@ void dsound_frame_update(int frame_ms) {
     REPEAT(i,INSTANCE_COUNT) {
         REPEAT(kind,4) {
             inst = &sound_instances[kind][i];
-            if (inst -> exists) {            
-                inst -> age++;
-                if (inst -> playing && !inst -> looping) {
+            if (inst->exists) {            
+                inst->age++;
+                if (inst->playing && !inst->looping) {
                     DWORD status = 0;
-                    inst -> clone_buffer -> GetStatus(&status);
+                    inst->clone_buffer->GetStatus(&status);
                     if (!(status & DSBSTATUS_PLAYING)) {
                         dsound_inst_free(inst);
                     }
@@ -420,9 +418,9 @@ int dsound_get_free_instance(int kind) {
     oldest = &sound_instances[kind][oldest_id];
     REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
-        if (!inst -> exists) return i;
+        if (!inst->exists) return i;
         
-        if (inst -> age > oldest -> age) {
+        if (inst->age > oldest->age) {
             oldest = inst;
             oldest_id = i;
         }
@@ -463,13 +461,13 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         //read wav properties
             RiffWaveFmt* format = (RiffWaveFmt*)buffer;
         
-            samplerate = format -> SampleRate;
-            channels = format -> Channels;
-            bits = format -> BitsPerSample;
+            samplerate = format->SampleRate;
+            channels = format->Channels;
+            bits = format->BitsPerSample;
         
         //navigate wav blocks until we get to the data block
             data = (char*)(buffer + 16);
-            data_length = format -> FormatLength;
+            data_length = format->FormatLength;
             do {        
                 data += data_length + 8;
                 data_length = *(uint32_t*)(data);
@@ -490,7 +488,7 @@ int dsound_add_mem(char* buffer, int length, int kind) {
     //debug_message(L"data length %i",data_length);
     
     //create the secondary buffer and fill it with pcm data
-        vibe_check(Device -> CreateSoundBuffer(
+        vibe_check(Device->CreateSoundBuffer(
             describe_buffer(
                 DSBCAPS_GLOBALFOCUS | DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY,
                 describe_format(samplerate, channels, bits),
@@ -502,7 +500,7 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         
         void* lock_chunk;
         DWORD lock_size;
-        vibe_check(secbuffer -> Lock(
+        vibe_check(secbuffer->Lock(
             0, data_length,
             &lock_chunk, &lock_size,
             NULL, NULL, 0
@@ -510,25 +508,25 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         
         memcpy(lock_chunk, data, lock_size);
         
-        vibe_check(secbuffer -> Unlock(
+        vibe_check(secbuffer->Unlock(
             lock_chunk, lock_size,
             NULL, NULL
         ));
     
     //create the sound resource
         SoundResource* sound = &sound_resources[id];    
-        sound -> buffer = secbuffer;
-        sound -> kind = kind;
-        sound -> exists = true;
-        sound -> loaded = true;
-        sound -> persistent = false;
-        sound -> frequency = samplerate;
-        sound -> volume = 1.0;
-        sound -> pan = 0.0;
-        sound -> pitch = 1.0;
-        sound -> loop_a = 0;
-        sound -> loop_b = 0;
-        sound -> inst_count = 0;
+        sound->buffer = secbuffer;
+        sound->kind = kind;
+        sound->exists = true;
+        sound->loaded = true;
+        sound->persistent = false;
+        sound->frequency = samplerate;
+        sound->volume = 1.0;
+        sound->pan = 0.0;
+        sound->pitch = 1.0;
+        sound->loop_a = 0;
+        sound->loop_b = 0;
+        sound->inst_count = 0;
     
     return id;
 }
@@ -546,43 +544,45 @@ LONG dsound_pan_formula(double pan) {
 
 int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundResource* sound = &sound_resources[index];
-    if (!sound -> exists) return ERROR_NON_EXIST;
-    
-    int kind = sound -> kind;
-    double volume = vol * global_volume;
+    if (!sound->exists) return ERROR_NON_EXIST;
     
     LPDIRECTSOUNDBUFFER clone;
-    vibe_check(Device -> DuplicateSoundBuffer(sound -> buffer, &clone));
+    vibe_check(Device->DuplicateSoundBuffer(sound->buffer, &clone));
     
-    clone -> SetVolume(dsound_volume_formula(volume));
-    clone -> SetPan(dsound_pan_formula(pan));
-    clone -> SetFrequency((DWORD)(pitch * sound -> frequency));
+    double volume_final = sound->volume * vol * global_volume;
+    double pan_final = sound->pan + pan;
+    double pitch_final = sound->pitch * pitch;
+    
+    clone->SetVolume(dsound_volume_formula(volume_final));
+    clone->SetPan(dsound_pan_formula(pan_final));
+    clone->SetFrequency((DWORD)(pitch_final * sound->frequency));
 
+    int kind = sound->kind;
     SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
     
-    inst -> sound = sound;
-    inst -> clone_buffer = clone;
-    inst -> index = last_instance_id;
-    inst -> volume = volume;
-    inst -> pan = pan;
-    inst -> pitch = pitch;
-    inst -> volume_from = volume;
-    inst -> volume_to = volume;
-    inst -> fade_length = 0;
-    inst -> fade_amount = 0;
-    inst -> age = 0;
-    inst -> exists = true;
-    inst -> playing = true;
-    inst -> looping = loop;
+    inst->sound = sound;
+    inst->clone_buffer = clone;
+    inst->index = last_instance_id;
+    inst->volume = volume_final;
+    inst->pan = pan_final;
+    inst->pitch = pitch_final;
+    inst->volume_from = volume_final;
+    inst->volume_to = volume_final;
+    inst->fade_length = 0;
+    inst->fade_amount = 0;
+    inst->age = 0;
+    inst->exists = true;
+    inst->playing = true;
+    inst->looping = loop;
     
-    sound -> inst_count++;
+    sound->inst_count++;
     
     last_instance_id++;
     
     if (loop) {
-        vibe_check(clone -> Play(0, 0, DSBPLAY_LOOPING));
+        vibe_check(clone->Play(0, 0, DSBPLAY_LOOPING));
     } else {
-        vibe_check(clone -> Play(0, 0, 0));
+        vibe_check(clone->Play(0, 0, 0));
     }
     
     return last_instance_id;
@@ -596,7 +596,7 @@ bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundI
     
     REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
-        if (inst -> exists && inst -> index == iid) {
+        if (inst->exists && inst->index == iid) {
             *get_kind = kind;
             *get_index = i;
             get_inst = inst;
@@ -621,11 +621,11 @@ void dsound_stop_inst(int iid) {
 }
 
 void dsound_inst_free(SoundInstance* inst) {
-    if (inst -> exists) {
-        inst -> sound -> inst_count--;
-        inst -> clone_buffer -> Stop();
-        inst -> clone_buffer -> Release();
-        inst -> exists = false;
+    if (inst->exists) {
+        inst->sound->inst_count--;
+        inst->clone_buffer->Stop();
+        inst->clone_buffer->Release();
+        inst->exists = false;
     }
 }
 
