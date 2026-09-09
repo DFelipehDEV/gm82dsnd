@@ -115,6 +115,7 @@
 #define sound_get_pos
 #define sound_set_pos
 #define sound_set_loop
+#define sound_set_persistent
 
 #define __dsound_error_effects
     show_error("8.2 DirectSound error: Effects are not supported.",false)

@@ -80,15 +80,12 @@
 #define ERROR_FAIL_LOAD   -3
 #define ERROR_NO_SPACE    -4
 
-#define ASSERT(var) if ((var) < 0) return (var)
+#define ASSERT(x) if ((x) < 0) return (x)
 
 
 //---------------------------------------------------------------------------//
 //debug helpers 🖐
 
-
-#define WIDE2(x) L##x
-#define WIDE1(x) WIDE2(x)
 
 extern bool __vibe_check(const wchar_t* file, int line, HRESULT hr) {
     if (SUCCEEDED(hr)) return false;
@@ -103,6 +100,8 @@ extern bool __vibe_check(const wchar_t* file, int line, HRESULT hr) {
     return true;
 }
 
+#define WIDE2(x) L##x
+#define WIDE1(x) WIDE2(x)
 #define vibe_check(a) __vibe_check(WIDE1(__FILE__),__LINE__,a)
 
 extern void debug_message(const wchar_t* msg) {    
@@ -120,7 +119,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //types and globals
 
 
-//dsound
+//directsound
     LPDIRECTSOUND8 Device;
     LPDIRECTSOUNDBUFFER PrimaryBuffer;
     DSBUFFERDESC BufferDescriptor;
@@ -144,7 +143,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     #pragma pack(pop)
 
 
-//gm 8.1 sound memory structures
+//gm 8.1 memory structures
     struct TMemoryStream {
         uint32_t vfp;
         void* memory;
@@ -167,8 +166,6 @@ extern void debug_message(const wchar_t* msg, int value) {
         wchar_t* fname;
     };
 
-
-//runner memory locations
     static GMSound*** gm_sound_mem = (GMSound***)0x6840c0;
     static uint32_t* gm_sound_count = (uint32_t*)0x6840c8;
 
@@ -176,6 +173,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //sound structs
     struct SoundResource {
         LPDIRECTSOUNDBUFFER buffer;
+        int index;
         int kind;
         bool exists = 0;
         bool loaded;
@@ -204,6 +202,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         bool exists;
         bool playing;
         bool looping;        
+        bool persistent;
     };
 
 
@@ -240,6 +239,8 @@ void dsound_inst_free(SoundInstance*);
 LONG dsound_volume_formula(double);
 LONG dsound_pan_formula(double);
 void dsound_set_global_volume(double);
+int dsound_sound_from_instance(int);
+bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
 
 
 //---------------------------------------------------------------------------//
@@ -352,13 +353,22 @@ GMREAL __dsound_glob_vol(double vol) {
 }
 
 GMREAL __dsound_exists(double index) {
-    if (index < 0 || index >= RESOURCE_COUNT) return false;
+    if (index < 0) return false;
+    if (index >= RESOURCE_COUNT) {
+        int kind, iid;
+        SoundInstance* inst = NULL;
+        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
+            return inst -> exists;
+        }
+        return false;
+    }
     return sound_resources[(int)index].exists;
 }
 
 GMREAL __dsound_getkind(double index) {
-    if (index < 0 || index >= RESOURCE_COUNT) return false;
-    if (!sound_resources[(int)index].exists) return (double)ERROR_NON_EXIST;
+    int sid = dsound_sound_from_instance((int)index);
+    ASSERT(sid);
+    
     return (double)sound_resources[(int)index].kind;
 }
 
@@ -375,6 +385,44 @@ GMREAL __dsound_get_builtin_count() {
 //---------------------------------------------------------------------------//
 //internals
 
+
+int dsound_sound_from_instance(int unknown_id) {
+    //converts an instance id into a sound id
+    if (unknown_id >= RESOURCE_COUNT) {
+        //is instance; verify
+        int kind, iid;
+        SoundInstance* inst = NULL;
+        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
+            return inst -> sound -> index;
+        } else {
+            return ERROR_NON_EXIST;
+        }
+    } else {
+        //is sound
+        if (unknown_id < 0) return ERROR_NON_EXIST;
+        if (!sound_resources[(int)unknown_id].exists) return ERROR_NON_EXIST;
+        return unknown_id;
+    }
+}
+
+bool dsound_instance_from_iid(int iid, int* get_kind, int* get_index, SoundInstance* get_inst) {
+    *get_kind = ERROR_NON_EXIST;
+    *get_index = ERROR_NON_EXIST;
+    
+    SoundInstance* inst;
+    
+    REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
+        inst = &sound_instances[kind][i];
+        if (inst->exists && inst->index == iid) {
+            *get_kind = kind;
+            *get_index = i;
+            get_inst = inst;
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 void dsound_thread_update() {
     //thread; use THREAD_MS increments
@@ -404,6 +452,17 @@ void dsound_frame_update(int frame_ms) {
     }
 }
 
+LONG dsound_volume_formula(double vol) {
+    //decode log volume used by directsound
+    return (LONG)(3333.3 * log10(max(0.001,min(1.0,vol))));
+}
+
+LONG dsound_pan_formula(double pan) {
+    //decode log volume used by directsound
+    if (pan>=0) return (LONG)(-3333.3 * log10(max(0.001,min(1.0,1.0-pan))));
+    else return (LONG)(3333.3 * log10(max(0.001,min(1.0,1.0+pan))));
+}
+
 int dsound_get_free_resource() {
     REPEAT(i, RESOURCE_COUNT) {
         if (!sound_resources[i].exists) return i;
@@ -429,6 +488,24 @@ int dsound_get_free_instance(int kind) {
     return oldest_id;
 }
 
+void dsound_stop_inst(int iid) {
+    int kind,index;
+    SoundInstance* inst = NULL;
+    
+    if (dsound_instance_from_iid(iid, &kind, &index, inst)) {
+        dsound_inst_free(inst);
+    }
+}
+
+void dsound_inst_free(SoundInstance* inst) {
+    if (inst->exists) {
+        inst->sound->inst_count--;
+        inst->clone_buffer->Stop();
+        inst->clone_buffer->Release();
+        inst->exists = false;
+    }
+}
+
 int dsound_add_file(char* fname, int kind) {
     FILE* file = fopen(fname, "rb");
     if (file == NULL) return ERROR_NON_EXIST;
@@ -449,7 +526,7 @@ int dsound_add_file(char* fname, int kind) {
 
 int dsound_add_mem(char* buffer, int length, int kind) {
     int id = dsound_get_free_resource();
-    ASSERT(id);
+    if (id < 0) return id;
     
     LPDIRECTSOUNDBUFFER secbuffer;
     int samplerate, channels, bits;
@@ -514,7 +591,8 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         ));
     
     //create the sound resource
-        SoundResource* sound = &sound_resources[id];    
+        SoundResource* sound = &sound_resources[id];
+        sound->index = id;
         sound->buffer = secbuffer;
         sound->kind = kind;
         sound->exists = true;
@@ -529,17 +607,6 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         sound->inst_count = 0;
     
     return id;
-}
-
-LONG dsound_volume_formula(double vol) {
-    //decode log volume used by directsound
-    return (LONG)(3333.3 * log10(max(0.001,min(1.0,vol))));
-}
-
-LONG dsound_pan_formula(double pan) {
-    //decode log volume used by directsound
-    if (pan>=0) return (LONG)(-3333.3 * log10(max(0.001,min(1.0,1.0-pan))));
-    else return (LONG)(3333.3 * log10(max(0.001,min(1.0,1.0+pan))));
 }
 
 int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
@@ -574,6 +641,7 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     inst->exists = true;
     inst->playing = true;
     inst->looping = loop;
+    inst->persistent = sound->persistent;
     
     sound->inst_count++;
     
@@ -588,45 +656,8 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     return last_instance_id;
 }
 
-bool dsound_find_instance_from_iid(int iid, int* get_kind, int* get_index,SoundInstance* get_inst) {
-    *get_kind = ERROR_NON_EXIST;
-    *get_index = ERROR_NON_EXIST;
-    
-    SoundInstance* inst;
-    
-    REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
-        inst = &sound_instances[kind][i];
-        if (inst->exists && inst->index == iid) {
-            *get_kind = kind;
-            *get_index = i;
-            get_inst = inst;
-            return true;
-        }
-    }
-    
-    return false;
-}
-
 void dsound_set_global_volume(double vol) {
     global_volume = min(1.0,max(0.0,vol));
-}
-
-void dsound_stop_inst(int iid) {
-    int kind,index;
-    SoundInstance* inst = NULL;
-    
-    if (dsound_find_instance_from_iid(iid, &kind, &index, inst)) {
-        dsound_inst_free(inst);
-    }
-}
-
-void dsound_inst_free(SoundInstance* inst) {
-    if (inst->exists) {
-        inst->sound->inst_count--;
-        inst->clone_buffer->Stop();
-        inst->clone_buffer->Release();
-        inst->exists = false;
-    }
 }
 
 
