@@ -60,11 +60,24 @@
 //---------------------------------------------------------------------------//
 //header
 
+
 #include <stdio.h>
 #include <stdint.h>
 #include <cmath>
 #include <windows.h>
 #include <dsound.h>
+
+#include "stb_vorbis.c"
+//bruhhh
+#undef L
+#undef R
+#undef C
+
+#define MINIMP3_IMPLEMENTATION
+#include "minimp3.h"
+
+#define MINIMP3_NO_STDIO
+#include "minimp3_ex.h"
 
 #pragma comment(lib,"dsound.lib")
 #pragma comment(lib,"Dxguid.lib")

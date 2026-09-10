@@ -76,8 +76,14 @@
     
 
 #define sound_get_pos
+    ///sound_get_pos(index)
+    
 #define sound_set_pos
+    ///sound_set_pos(index,pos)
+    
 #define sound_set_loop
+    ///sound_set_loop(index,a,b,[unit])
+    
 #define sound_set_persistent
     ///sound_set_persistent(index,persistent)
 
@@ -92,7 +98,7 @@
 
 
 #define sound_loop_ext
-    ///sound_loop_ext(index,vol,pan,pitch)    
+    ///sound_loop_ext(index,vol,pan,pitch)
     __dsound_play(__dsound_name_parser(argument0),1,argument1,argument2,argument3)
 
 
@@ -120,6 +126,7 @@
     
 
 #define sound_pitch
+    ///sound_pitch(index,value)
 
 
 #define sound_fade
