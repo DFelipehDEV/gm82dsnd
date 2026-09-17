@@ -16,12 +16,14 @@
 
 
 #define __dsound_name_parser
+    //(index,funcname)
     //converts a string name to sound index, for "filename" sound id support
     if (is_string(argument0)) {
-        if (ds_map_exists(__dsound_map,argument0))
-            return ds_map_find_value(__dsound_map,argument0)
+        if (ds_map_exists(__dsound_map,argument0)) return ds_map_find_value(__dsound_map,argument0)
+        show_error("In function "+argument1+": Sound name ("+argument0+") doesn't exist.",0)
         return noone
     }
+    if (!sound_exists(argument0)) show_error("In function "+argument1+": Sound index ("+argument0+") doesn't exist.",0)
     return argument0
 
 
@@ -51,12 +53,12 @@
 
 #define sound_exists
     ///sound_exists(ind)
-    return __dsound_exists(__dsound_name_parser(argument0))
+    return __dsound_exists(__dsound_name_parser(argument0,"sound_exists"))
 
 
 #define sound_get_kind
     ///sound_get_kind(ind)    
-    return __dsound_getkind(__dsound_name_parser(argument0))
+    return __dsound_getkind(__dsound_name_parser(argument0,"sound_get_kind"))
 
 
 #define sound_get_name
@@ -71,6 +73,25 @@
     return ""
 
 
+#define sound_set_name
+    ///sound_set_name(index,name)
+    //index: old sound name, or resource index
+    //name: new name to use
+    //Renames a sound such that it can be addressed by the new name string.
+    var __index,__name;
+    
+    __index=__dsound_name_parser(argument0,"sound_set_name")
+    if (__index!=noone) {
+        __name=ds_map_find_value(__dsound_rev_map,__index)
+        ds_map_delete(__dsound_map,__name)
+        ds_map_delete(__dsound_rev_map,__index)
+        
+        __name=argument1
+        ds_map_add(__dsound_map,__name,__index)
+        ds_map_add(__dsound_rev_map,__index,__name)
+    }
+    
+    
 #define sound_get_preload
     ///sound_get_preload(ind)
     
@@ -94,27 +115,27 @@
 
 #define sound_loop
     ///sound_loop(index)    
-    __dsound_play(__dsound_name_parser(argument0),1,1,0,1)
+    __dsound_play(__dsound_name_parser(argument0,"sound_loop"),1,1,0,1)
 
 
 #define sound_loop_ext
     ///sound_loop_ext(index,vol,pan,pitch)
-    __dsound_play(__dsound_name_parser(argument0),1,argument1,argument2,argument3)
+    __dsound_play(__dsound_name_parser(argument0,"sound_loop_ext"),1,argument1,argument2,argument3)
 
 
 #define sound_play
     ///sound_play(index)    
-    __dsound_play(__dsound_name_parser(argument0),0,1,0,1)
+    __dsound_play(__dsound_name_parser(argument0,"sound_play"),0,1,0,1)
 
 
 #define sound_play_ext
     ///sound_play_ext(index,vol,pan,pitch)    
-    __dsound_play(__dsound_name_parser(argument0),0,argument1,argument2,argument3)
+    __dsound_play(__dsound_name_parser(argument0,"sound_play_ext"),0,argument1,argument2,argument3)
 
 
 #define sound_isplaying
     ///sound_isplaying(index)
-    return __dsound_insts(__dsound_name_parser(argument0))
+    return __dsound_insts(__dsound_name_parser(argument0,"sound_isplaying"))
 
 
 #define sound_volume
