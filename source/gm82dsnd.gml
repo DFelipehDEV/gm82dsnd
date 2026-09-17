@@ -2,8 +2,9 @@
     globalvar __gm82dsound_version; __gm82dsound_version=010
     
     object_event_add(gm82core_object,ev_step,ev_step_end,"__dsound_update(1000/room_speed)")
+    object_event_add(gm82core_object,ev_other,ev_room_end,"__dsound_roomend()")
     
-    globalvar __dsound_error,__dsound_map,__dsound_rev_map,__dsound_search_dir;
+    globalvar __dsound_error,__dsound_map,__dsound_rev_map,__dsound_prs_map,__dsound_search_dir;
     
     __dsound_error[1]="Generic DirectSound error."
     __dsound_error[2]="Non-existing index."
@@ -12,7 +13,16 @@
     
     __dsound_map=ds_map_create()
     __dsound_rev_map=ds_map_create()
+    __dsound_prs_map=ds_map_create()
     __dsound_search_dir=""
+
+
+#define __dsound_roomend
+    var __key;
+    
+    __key=ds_map_find_first(__dsound_rev_map) repeat (ds_map_size(__dsound_rev_map)) {
+        sound_stop(__key)
+    __key=ds_map_find_next(__dsound_rev_map)}
 
 
 #define __dsound_name_parser
@@ -107,6 +117,12 @@
     
 #define sound_set_persistent
     ///sound_set_persistent(index,persistent)
+    var __index;
+    __index=__dsound_name_parser(argument0,"sound_set_persistent")
+    if (__index!=noone) {
+        ds_map_set(__dsound_prs_map,__index,!!argument1)
+    }
+
 
 #define sound_global_volume
     ///sound_global_volume(value)

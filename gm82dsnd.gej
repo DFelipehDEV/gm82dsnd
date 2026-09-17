@@ -469,6 +469,15 @@
 					"returntype": 2
 				},
 				{
+					"name": "__dsound_roomend",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": null,
+					"returntype": 2
+				},
+				{
 					"name": "__gm82dsound_gml_init",
 					"extname": "",
 					"calltype": 2,
@@ -633,6 +642,15 @@
 						2,
 						2
 					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_stop_nonpersist",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
