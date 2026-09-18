@@ -1,156 +1,313 @@
 
 
-    RENEX POKEY
-    ===========
-    v1.0
-    18 Aug 2026
+    Game Maker 8.2 DirectSound
+    ==========================
+    v0.1
+    3 Sep 2026
 
 
-  A modern, high quality implementation of a POKEY-style sound engine.
-
-  Written by renex. Designed for Game Maker 8.2.
+  A modern audio engine for Game Maker 8.2.
+  
+  Requires Core and Buffer.
 
 
 -------------------------------------------------------------------------------
 
-  Pokey?
-  ------
+  Preamble
+  --------
 
-
-  POKEY is a co-processor present in some of Atari's first video game systems.
-  It was responsible for reading controller input and, among other things, had
-  limited sound output capabilities through four simple programmable sound
-  generators using basic pulse and noise models. When you think of "dat Atari
-  sound doe", yep, that's a POKEY chip in action.
-
-  This extension provides a modern reimplementation of the sound core of the
-  POKEY chip, with customizable channel counts, high quality audio output,
-  and accurate frequency tuning and stereo panning values, for use in realtime
-  sound generation in video games and music applications.
-
-
--------------------------------------------------------------------------------
-
-  Instruments
-  -----------
+  This extension was designed from the ground up using native Windows
+  DirectSound technology to be the new main line Game Maker 8.2 game audio
+  solution.
   
+  While not as powerful as 8.2 Sound, this extension is much smaller and
+  faster, using up only about 25 KB of exe space when compared to FmodEx's
+  vast 0.7 MB, with much less code running per frame and on function calls,
+  leading to better game size, load times and performance.
   
-  The POKEY chip has a few different presets for its sound generators. Since
-  the goal of this extension is to produce high quality sound rather than to
-  perfectly emulate the chip itself, any duplicates, buggy, or silent
-  instrument slots have been removed. Additionally, all instrument types have
-  been pitch shifted such that the output pitch matches the set input
-  frequency, and the known broken frequency values have not been reproduced.
-  We also supply a 12.5% duty square wave, which was not originally present as
-  a preset, but is frequently used in 'retro' soundscapes which felt relevant
-  to include.
+  Additionally, just like how it's done in the Audio extension, in-memory sound
+  resource handling allows for sound organization in the 8.2 IDE, while also
+  negating the long load times associated with loading sounds from disk at game
+  start.
   
-  
-  The available instrument types are identified by the following constants:
-
-  pk_pulse (0): Square
-  - A standard 50% duty square wave.
-  
-  pk_p1813 (1): Pulse 18-13 duty
-  - This is the POKEY's unique flavor of square wave, with an approximate
-    58% duty cycle. Sounds softer than the regular square wave.
-  
-  pk_p125 (2): Pulse 12.5% duty
-  - 12.5% duty square wave. A more open sound, commonly heard on NES games.
-  
-  pk_poly4 (3): Poly 4
-  - A 4-bit polynomial counter. Sounds like a bass instrument.
-  
-  pk_poly5 (4): Poly 5
-  - A 5-bit polynomial counter. A harsh, droning sound.
-  
-  pk_poly9 (5): Poly 9
-  - A 9-bit polynomial counter. Sounds like wind or fire.
-  
-  pk_poly4_5 (6): Poly 4 -> Poly 5
-  - A 4-bit polynomial counter, lowpassed by a 5-bit polynomial counter.
-    Sounds like a car engine.
-
-  pk_poly17 (7): Poly 17
-  - A 17-bit polynomial counter. Sounds like white noise.
-  
-  pk_poly917 (8): Poly 9 -> Poly 17
-  - A 9-bit polynomial counter, lowpassed by a 17-bit polynomial counter.
-    Sounds like rushing water
+  Finally, we've added even more quality of life features, such as the concept
+  of persistent sounds, the ability to rename sounds, clear error messages,
+  and other goodies from Sound and Audio such as .wasd sound packs, adding
+  sounds from included files, referring to sounds as either strings or indexes,
+  music layering and fading, and much more.
 
 
 -------------------------------------------------------------------------------
 
-  Function list
+  Managing resources
+  ------------------
+
+    Just like in the Audio extension, it is possible to use sounds added via
+    the 8.2 IDE in your games. In functions, sounds can be referred to either
+    via their sound resource index, or a string with the name of the sound.
+    
+    Additionally, it is possible to rename sounds for organization purposes.
+
+
+- sound_add
+
+- sound_add_ext
+
+- sound_add_directory
+
+- sound_add_included
+
+
+- sound_exists
+
+
+- sound_get_name
+
+- sound_set_name
+
+
+- sound_discard
+
+- sound_restore
+
+
+- sound_replace
+
+- sound_delete
+
+
+- sound_set_search_directory
+
+
+-------------------------------------------------------------------------------
+
+  Packs
+  -----
+
+    This extension implements standard support for WASD (Where's All the Sound
+    Data) packs created with either of the other two sound extensions.
+
+
+- sound_pack_create
+- sound_pack_load
+- sound_pack_unload
+- sound_pack_unpack
+- sound_pack_password
+
+
+-------------------------------------------------------------------------------
+
+  Instance Management
+  -------------------
+  
+    As usual, this extension allows for individual instances of playing sounds
+    to be controlled. All functions that play sounds return an instance id that
+    can then be used in the other functions. All getters and setters accept
+    either sound resources or instance ids.
+
+
+- sound_play
+
+- sound_play_ext
+
+- sound_play_single
+
+- sound_loop
+
+- sound_loop_ext
+
+- sound_loop_single
+
+- sound_isplaying
+
+- sound_pause
+
+- sound_pause_all
+
+- sound_resume
+
+- sound_resume_all
+
+- sound_get_instance_count
+
+- sound_get_instance_list
+
+- sound_stop
+
+- sound_stop_all
+
+
+-------------------------------------------------------------------------------
+
+  3D Sounds
+  ---------
+
+    3D sounds are currently not implemented and will return in a later version.
+
+
+- sound_3d_set_sound_cone
+- sound_3d_set_sound_distance
+- sound_3d_set_sound_position
+- sound_3d_set_sound_velocity
+
+
+-------------------------------------------------------------------------------
+
+  Background Music
+  ----------------
+  
+    We provide some convenience functions to make managing background music
+    a little easier. Additionally, it is possible to have more than one layer
+    of background music playing at the same time, using the layer function.
+
+
+- sound_background_instance()
+    Returns the instance id of the currently playing background music,
+    or noone if there isn't one. If there are multiple layers of music
+    currently active, the function returns the newest one.
+    To get a list of all active background music layers,
+    use sound_kind_instance_list(kind_background).
+
+- sound_background_tempo(value)
+    This function is not currently available due to no MIDI support.
+
+- sound_background_crossfade(index,time,volume,pan,pitch,loop)
+    Crossfades between two background music tracks over a specified time.
+
+- sound_background_switch(index,time,volume,pan,pitch,loop)
+    Fades out the current background music then fades in the new one.
+
+- sound_background_layer(index,vol,pitch,pan,loop)
+    Adds a new layer of background music.
+
+
+-------------------------------------------------------------------------------
+
+  Sound Persistence
+  -----------------
+  
+    In order to solve the common problem of looping sounds remaining after
+    leaving a room, we have a new sound persistence system. Only sounds that
+    have the persistent flag are allowed to remain playing between rooms.
+
+  
+- sound_set_persistent(index,persistent)
+    Makes a sound index or instance persistent. When a sound is persistent,
+    all instances created from that sound will be persistent too.
+
+
+-------------------------------------------------------------------------------
+
+  Getters and Setters
+  -------------------
+
+    A new logic is used when deciding the properties of instances.
+    
+    Usually, when you change the volume or pitch value of a sound resource,
+    any changes to an instance of that sound would simply override it.
+    To mitigate this problem, instance properties are now combined with those
+    of the sound resource that it is an instance of.
+    
+    For example, if a sound resource has the following properties:
+    
+    - volume: 0.5
+    - pitch: 0.9
+    - pan: -0.1
+    
+    and the instance has the following properties:
+    
+    - volume: 0.8
+    - pitch: 0.5
+    - pan: 0.3
+    
+    then the resulting sound coming out of the mixer would be:
+    
+    - volume: 0.5 * 0.8 = 0.4
+    - pitch: 0.9 * 0.5 = 0.45
+    - pan: -0.1 + 0.3 = 0.2
+    
+    
+    This system allows for developers to set baseline values on a sound
+    resource for mastering purposes, and then have each instance of that sound
+    behave in a predictable way without having to go around and change values
+    everywhere in your code that deals with instances. The overall experience
+    is much more intuitive and convenient.
+
+
+- sound_get_frequency
+
+- sound_get_kind
+
+- sound_get_length
+
+- sound_get_pan
+
+- sound_get_pitch
+
+- sound_get_pos
+
+- sound_get_preload
+
+- sound_get_volume
+
+- sound_global_volume
+
+- sound_pan
+
+- sound_pitch
+
+- sound_volume
+
+- sound_set_loop
+
+- sound_set_pos
+
+- sound_fade
+
+
+-------------------------------------------------------------------------------
+
+  Sound Kind Operations
+  ---------------------
+  
+    In addition to normal operation, it is also possible to batch-operate on
+    all sounds of a specific kind. For example, you may want to stop all
+    kind 0 sound effects, or change the volume of all kind 1 music tracks.
+    The kind functions allow you to perform such actions.
+
+
+- sound_kind_volume(kind,volume)
+
+- sound_kind_pan(kind,pan)
+
+- sound_kind_pitch(kind,pitch)
+
+- sound_kind_pause(kind)
+
+- sound_kind_resume(kind)
+
+- sound_kind_stop(kind)
+
+- sound_kind_instance_list
+
+
+-------------------------------------------------------------------------------
+
+  Sound Effects
   -------------
 
-
-- pokey_init(samplerate,channels)
-  - samplerate: audio sample rate (8000-48000)
-  - channels: number of channels (1-32)
-
-    Starts the sound engine with the desired settings.
-    The sample rate is limited by the system's capabilities. Usually, values
-    between 8000 and 48000 are acceptable. You can use a lower sample rate as
-    a sort of low-pass filter, depending on your stylistic preferences.
-    The number of channels is the number of unique voices that can be played
-    simultaneously, limited between 1 and 32. This limit is not final, just
-    let me know if you need more voices for your specific application.
+    Effects are not currently available while we research the feasibility of
+    implementation.
 
 
-- pokey_update()
-    Updates the pokey engine with the latest instrument data.
-    Note that is is normally done automatically for you; you only need to
-    call it manually if you're f.ex. in a deadlock for a loading screen or
-    a room transition. Otherwise, do not call this function.
-
-
-- pokey_get_chromatic_frequency(note)
-  - note: note number to convert to hertz
-  
-    Returns the frequency in Hz of a note on the chromatic scale. The first
-    note is A0 (27.5Hz), with 12 notes in an octave. For example, note 48
-    (A4, 4 octaves above A0) returns 440 Hz.
-
-
-- pokey_get_byte_frequency(byte)
-  - byte: note id (0-254)
-  
-    Returns a corrected frequency value of a note byte from 0 to 254 as heard
-    in the original POKEY chip with default settings. If you're going for a
-    retro aesthetic, using only frequencies returned by this function should
-    provide the most authentic Atari sound flavor.
-
-
-- pokey_get_instrument_name(type)
-  - type: instrument id (0-7)
-
-    Returns a string with the name of the selected instrument. The returned
-    strings are listed in the "Instruments" section of this document.
-
-
-- pokey_sound(channel,type,freq,vol,pan)
-  - channel: channel to use (0 - 32)
-  - type: instrument id (0 - 6)
-  - freq: sound frequency in hz
-  - volume: channel volume (0 - 1)
-  - pan: channel pan (-1 - 1)
-
-    Starts playing sound in a channel. To stop a channel, set the volume to 0.
-    Do note that the maximum frequency that can be played is below half of
-    your sample rate, anything too close to it will have "beating" artifacts.
-    The available instrument types are identifiable with the pk_ constants.
-    More instrument information is available in the "Instruments" section.
-
-
-- pokey_get_voices()
-    Returns the current number of active channels.
-    A channel is considered active when frequency and volume are not zero.
-
-
-- pokey_stop()
-    Silences all channels. Calling this function is equivalent to setting the
-    volume to 0 on all channels.
+- sound_effect_chorus
+- sound_effect_compressor
+- sound_effect_echo
+- sound_effect_equalizer
+- sound_effect_flanger
+- sound_effect_gargle
+- sound_effect_reverb
+- sound_effect_set
 
 
 -------------------------------------------------------------------------------

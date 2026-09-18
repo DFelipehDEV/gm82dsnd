@@ -33,6 +33,7 @@
 - "persistent" sounds that stay between rooms, any sounds that are not
   persistent will stop when changing rooms.
 - tracker support via libxmp.
+- implement dsound_setpause.
 
 
   Notes
@@ -68,7 +69,7 @@
 #include <dsound.h>
 
 #include "stb_vorbis.c"
-//bruhhh
+//bruh
 #undef L
 #undef R
 #undef C
@@ -86,13 +87,12 @@
 #define GMREAL extern "C" __declspec(dllexport) double __cdecl
 #define GMSTR extern "C" __declspec(dllexport) char* __cdecl
 
-#define REPEAT(x,n) for (int x = 0; x < (n); ++x)
-    
 #define ERROR_GENERIC     -1
 #define ERROR_NON_EXIST   -2
 #define ERROR_FAIL_LOAD   -3
 #define ERROR_NO_SPACE    -4
 
+#define REPEAT(x,n) for (int x = 0; x < (n); ++x)
 #define ASSERT(x) if ((x) < 0) return (x)
 
 
@@ -228,6 +228,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //global variables
     double global_volume = 0.7;
     int last_instance_id = RESOURCE_COUNT;
+    int background_instance = -4;
 
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
@@ -255,6 +256,7 @@ void dsound_set_global_volume(double);
 int dsound_sound_from_instance(int);
 bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
 void dsound_stop_nonp();
+void dsound_setpause(int,bool);
 
 
 //---------------------------------------------------------------------------//
@@ -367,16 +369,16 @@ GMREAL __dsound_glob_vol(double vol) {
 }
 
 GMREAL __dsound_exists(double index) {
-    if (index < 0) return false;
+    if (index < 0) return 0;
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
         if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
-            return inst -> exists;
+            return inst -> exists?1:0;
         }
-        return false;
+        return 0;
     }
-    return sound_resources[(int)index].exists;
+    return sound_resources[(int)index].exists?1:0;
 }
 
 GMREAL __dsound_getkind(double index) {
@@ -388,7 +390,7 @@ GMREAL __dsound_getkind(double index) {
 
 GMREAL __dsound_insts(double index) {
     if (index < 0 || index >= RESOURCE_COUNT) return false;
-    return sound_resources[(int)index].inst_count;
+    return (double)sound_resources[(int)index].inst_count;
 }
 
 GMREAL __dsound_get_builtin_count() {
@@ -398,6 +400,20 @@ GMREAL __dsound_get_builtin_count() {
 GMREAL __dsound_stop_nonpersist() {
     dsound_stop_nonp();
     return 0;
+}
+
+GMREAL __dsound_setpause(double index, double pause) {
+    dsound_setpause((int)index,pause>0.5);
+    return 0;
+}
+
+GMREAL __dsound_getbgid() {
+    int kind,index;
+    SoundInstance* inst = NULL;
+    if (dsound_instance_from_iid(background_instance, &kind, &index, inst)) {
+        return (double)background_instance;
+    }
+    return -4;
 }
 
 
@@ -676,6 +692,10 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     int kind = sound->kind;
     SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
     
+    if (kind == 1) {
+        background_instance = last_instance_id;
+    }
+    
     inst->sound = sound;
     inst->clone_buffer = clone;
     inst->index = last_instance_id;
@@ -702,11 +722,15 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
         vibe_check(clone->Play(0, 0, 0));
     }
     
-    return last_instance_id;
+    return inst->index;
 }
 
 void dsound_set_global_volume(double vol) {
     global_volume = min(1.0,max(0.0,vol));
+}
+
+void dsound_setpause(int index, bool paused) {
+    //etc
 }
 
 

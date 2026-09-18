@@ -3,13 +3,14 @@
 	"folder": "gm82",
 	"version": "0.1",
 	"author": "renex",
-	"date": "17/09/2026",
+	"date": "18/09/2026",
 	"license": "Free to use, also for commercial games.",
 	"description": "A modern audio engine for Game Maker 8.2.",
 	"helpfile": "",
 	"hidden": false,
 	"dependencies": [
-		"Game Maker 8.2 Core"
+		"Game Maker 8.2 Core",
+		"Game Maker 8.2 Buffer"
 	],
 	"files": [
 		{
@@ -42,7 +43,7 @@
 					"extname": "",
 					"calltype": 2,
 					"helpline": "",
-					"hidden": false,
+					"hidden": true,
 					"argtypes": null,
 					"returntype": 2
 				},
@@ -66,6 +67,40 @@
 						2,
 						2
 					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_add_directory",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_add_directory(dir,extension,kind)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_add_included",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_add_included(name,kind)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_background_instance",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_background_instance()",
+					"hidden": false,
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
@@ -198,6 +233,28 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_get_frequency",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_frequency(index)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_get_instance_list",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_instance_list(index)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_get_kind",
 					"extname": "",
 					"calltype": 2,
@@ -209,11 +266,45 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_get_length",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_length(index,unit)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_get_name",
 					"extname": "",
 					"calltype": 2,
 					"helpline": "",
 					"hidden": true,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_get_pan",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_pan(index)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_get_pitch",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_pitch(index)",
+					"hidden": false,
 					"argtypes": [
 						2
 					],
@@ -242,6 +333,24 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_get_instance_count",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_instance_count([index])",
+					"hidden": false,
+					"argtypes": null,
+					"returntype": 2
+				},
+				{
+					"name": "sound_get_volume",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_volume(index)",
+					"hidden": false,
+					"argtypes": null,
+					"returntype": 2
+				},
+				{
 					"name": "sound_global_volume",
 					"extname": "",
 					"calltype": 2,
@@ -264,6 +373,75 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_kind_pan",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_pan(kind,pan)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_kind_pause",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_pause(kind)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_kind_pitch",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_pitch(kind,pitch)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_kind_resume",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_resume(kind)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_kind_stop",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_stop(kind)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_kind_volume",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_kind_volume(kind,volume)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_loop",
 					"extname": "",
 					"calltype": 2,
@@ -278,11 +456,24 @@
 					"name": "sound_loop_ext",
 					"extname": "",
 					"calltype": 2,
-					"helpline": "sound_loop_ext(index,vol,pan,pitch)",
+					"helpline": "sound_loop_ext(index,vol,pan,pitch,paused)",
 					"hidden": false,
 					"argtypes": [
 						2,
 						2,
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_loop_single",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_loop_single(index)",
+					"hidden": false,
+					"argtypes": [
 						2,
 						2
 					],
@@ -298,6 +489,15 @@
 						2,
 						2
 					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_pause_all",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_pause_all()",
+					"hidden": false,
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
@@ -327,12 +527,24 @@
 					"name": "sound_play_ext",
 					"extname": "",
 					"calltype": 2,
-					"helpline": "sound_play_ext(index,vol,pan,pitch)",
+					"helpline": "sound_play_ext(index,vol,pan,pitch,paused)",
 					"hidden": false,
 					"argtypes": [
 						2,
 						2,
 						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_play_single",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_play_single(index)",
+					"hidden": false,
+					"argtypes": [
 						2
 					],
 					"returntype": 2
@@ -360,6 +572,26 @@
 					"argtypes": [
 						2
 					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_resume",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_resume(index)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_resume_all",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_resume_all()",
+					"hidden": false,
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
@@ -489,48 +721,38 @@
 			],
 			"constants": [
 				{
-					"name": "pk_square",
+					"name": "unit_seconds",
 					"value": "0",
 					"hidden": false
 				},
 				{
-					"name": "pk_p1813",
+					"name": "unit_samples",
 					"value": "1",
 					"hidden": false
 				},
 				{
-					"name": "pk_p125",
+					"name": "unit_unitary",
 					"value": "2",
 					"hidden": false
 				},
 				{
-					"name": "pk_poly4",
+					"name": "kind_soundfx",
+					"value": "0",
+					"hidden": false
+				},
+				{
+					"name": "kind_background",
+					"value": "1",
+					"hidden": false
+				},
+				{
+					"name": "kind_3dsound",
+					"value": "2",
+					"hidden": false
+				},
+				{
+					"name": "kind_streamed",
 					"value": "3",
-					"hidden": false
-				},
-				{
-					"name": "pk_poly5",
-					"value": "4",
-					"hidden": false
-				},
-				{
-					"name": "pk_poly9",
-					"value": "5",
-					"hidden": false
-				},
-				{
-					"name": "pk_poly4_5",
-					"value": "6",
-					"hidden": false
-				},
-				{
-					"name": "pk_poly17",
-					"value": "7",
-					"hidden": false
-				},
-				{
-					"name": "pk_poly917",
-					"value": "8",
 					"hidden": false
 				}
 			]
@@ -576,6 +798,15 @@
 					"argtypes": [
 						2
 					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_getbgid",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [],
 					"returntype": 2
 				},
 				{
@@ -640,6 +871,19 @@
 						2,
 						2,
 						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_setpause",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": [
+						2,
 						2
 					],
 					"returntype": 2
@@ -660,6 +904,62 @@
 					"helpline": "",
 					"hidden": true,
 					"argtypes": [
+						2
+					],
+					"returntype": 2
+				}
+			],
+			"constants": []
+		},
+		{
+			"filename": "packs.gml",
+			"origname": "source\\packs.gml",
+			"kind": 2,
+			"init": "",
+			"final": "",
+			"functions": [
+				{
+					"name": "sound_add_pack",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_add_pack(filename)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_create_pack",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_create_pack(sourcedir,filename)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_password",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_password(string)",
+					"hidden": false,
+					"argtypes": [
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_unpack_pack",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_unpack_pack(pack,dir)",
+					"hidden": false,
+					"argtypes": [
+						2,
 						2
 					],
 					"returntype": 2
