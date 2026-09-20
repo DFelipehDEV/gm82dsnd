@@ -1,0 +1,8 @@
+extension=.wav
+exists=1
+source=3d sound example.wav
+kind=2
+effects=0
+volume=1
+pan=0
+preload=1

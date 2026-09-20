@@ -1,5 +1,6 @@
 *.gex
 *.dll
 build
+cache
 *.py
 desktop.ini
