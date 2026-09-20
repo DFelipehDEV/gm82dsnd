@@ -158,7 +158,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //gm 8.1 memory structures
     struct TMemoryStream {
         uint32_t vfp;
-        void* memory;
+        char* memory;
         uint32_t size;
         uint32_t position;
         uint32_t capacity;
@@ -242,6 +242,7 @@ void dll_init();
 void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD);
 
 void dsound_thread_update();
+int dsound_load_builtin(int);
 int dsound_add_file(char*, int);
 int dsound_add_mem(char*, int, int);
 void dsound_frame_update(int);
@@ -569,6 +570,44 @@ void dsound_inst_free(SoundInstance* inst) {
         inst->clone_buffer->Stop();
         inst->clone_buffer->Release();
         inst->exists = false;
+    }
+}
+
+int dsound_load_builtin(int index) {
+    //grab the gm sound struct's memory stream by traversing memory
+    //note: no checks because the parent function already checks valid index
+    GMSound* sound=(*gm_sound_mem)[index];
+    TMemoryStream* memstream=sound->memstream;
+    
+    if (memstream==NULL) {
+        //if there is no memory stream in the sound struct, then that means
+        //we are looking at an exported "external codec" sound file...
+        
+        //or an empty sound resource.
+        if (sound->fname==NULL) {
+            return ERROR_FAIL_LOAD;
+        }
+        
+        //the path to the temp file is stored on this field
+        FILE* file = _wfopen(sound->fname, L"rb");
+        
+        if (file == NULL) return ERROR_NON_EXIST;
+        
+        fseek(file, 0, SEEK_END);
+        int size = ftell(file);
+        fseek(file, 0, SEEK_SET);        
+        char* buffer = (char*)malloc(size);
+        fread(buffer, size, 1, file);
+        fclose(file);
+        
+        int id = dsound_add_mem(buffer, size, sound->kind);
+        
+        free(buffer);
+        
+        return id;
+    } else {
+        //it's a valid builtin sound type loaded in memory, we can just grab it...
+        return dsound_add_mem(sound->memstream->memory,sound->memstream->size,sound->kind);
     }
 }
 
