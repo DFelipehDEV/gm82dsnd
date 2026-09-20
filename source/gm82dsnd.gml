@@ -17,7 +17,10 @@
   ----
   
   - implement functions:
-    - sound_get_preload
+    - sound_add_raw
+    - sound_add_buffer
+    - sound_add_buffer_raw
+    - sound_add_directory
     - sound_volume
     - sound_pan
     - sound_fade
@@ -28,11 +31,9 @@
     - sound_replace
     - sound_restore
     - sound_pitch
-    - sound_add_directory
-    - sound_add_included
-    - sound_get_voices
-    - sound_get_frequency
+    - sound_get_instance_count
     - sound_get_instance_list
+    - sound_get_frequency
     - sound_get_length
     - sound_get_pan
     - sound_get_pitch
@@ -248,6 +249,15 @@
 
 //---------------------------------------------------------------------------//
 //new api
+
+
+#define sound_add_included
+    ///sound_add_included(name,kind)
+    //Adds a sound from an included file.
+    var __fname;
+    __fname=temp_directory+"\gm82\sound\"+argument0
+    export_include_file_location(argument0,__fname)
+    return sound_add(__fname,argument1,1)
 
 
 #define sound_set_name

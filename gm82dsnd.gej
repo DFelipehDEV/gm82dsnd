@@ -244,6 +244,15 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_get_instance_count",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_get_instance_count([index])",
+					"hidden": false,
+					"argtypes": null,
+					"returntype": 2
+				},
+				{
 					"name": "sound_get_instance_list",
 					"extname": "",
 					"calltype": 2,
@@ -330,15 +339,6 @@
 					"argtypes": [
 						2
 					],
-					"returntype": 2
-				},
-				{
-					"name": "sound_get_instance_count",
-					"extname": "",
-					"calltype": 2,
-					"helpline": "sound_get_instance_count([index])",
-					"hidden": false,
-					"argtypes": null,
 					"returntype": 2
 				},
 				{
