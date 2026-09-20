@@ -93,7 +93,6 @@
 #define ERROR_NO_SPACE    -4
 
 #define REPEAT(x,n) for (int x = 0; x < (n); ++x)
-#define ASSERT(x) if ((x) < 0) return (x)
 
 
 //---------------------------------------------------------------------------//
@@ -191,6 +190,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         bool exists = 0;
         bool loaded;
         bool persistent;
+        bool preload;
         float volume;
         float pan;
         float pitch;
@@ -383,9 +383,14 @@ GMREAL __dsound_exists(double index) {
 
 GMREAL __dsound_getkind(double index) {
     int sid = dsound_sound_from_instance((int)index);
-    ASSERT(sid);
-    
-    return (double)sound_resources[(int)index].kind;
+    if (sid < 0) return sid;
+    return (double)sound_resources[sid].kind;
+}
+
+GMREAL __dsound_getpreload(double index) {
+    int sid = dsound_sound_from_instance((int)index);
+    if (sid < 0) return sid;
+    return (double)sound_resources[sid].preload;
 }
 
 GMREAL __dsound_insts(double index) {
@@ -663,6 +668,7 @@ int dsound_add_mem(char* buffer, int length, int kind) {
         sound->exists = true;
         sound->loaded = true;
         sound->persistent = false;
+        sound->preload = true;
         sound->frequency = samplerate;
         sound->volume = 1.0;
         sound->pan = 0.0;

@@ -153,6 +153,8 @@
 
 #define sound_get_preload
     ///sound_get_preload(ind)
+    
+    return __dsound_getpreload(__dsound_name_parser(argument0,"sound_get_preload"))
 
 
 #define sound_global_volume
