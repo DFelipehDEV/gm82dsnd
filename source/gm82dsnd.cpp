@@ -242,9 +242,10 @@ void dll_init();
 void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD);
 
 void dsound_thread_update();
-int dsound_load_builtin(int);
+void dsound_load_builtin(int);
 int dsound_add_file(char*, int);
 int dsound_add_mem(char*, int, int);
+int dsound_add_mem_index(int, char*, int, int);
 void dsound_frame_update(int);
 int dsound_get_free_resource();
 int dsound_get_free_instance();
@@ -258,6 +259,7 @@ int dsound_sound_from_instance(int);
 bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
 void dsound_stop_nonp();
 void dsound_setpause(int,bool);
+void dsound_load_sound_resources();
 
 
 //---------------------------------------------------------------------------//
@@ -328,7 +330,11 @@ void dll_init() {
             timer_callback,
             0,
             TIME_PERIODIC
-        );    
+        );
+    
+    
+    //load builtin sounds
+        dsound_load_sound_resources();
 }
 
 void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD) {
@@ -427,8 +433,17 @@ GMREAL __dsound_getbgid() {
 //internals
 
 
+void dsound_load_sound_resources() {
+    //loads all sound resources at game start
+    int count = *gm_sound_count;
+    
+    REPEAT(i, count) if ((*gm_sound_mem)[i]) {
+        dsound_load_builtin(i);
+    }
+}
+
 int dsound_sound_from_instance(int unknown_id) {
-    //convenience function that converts an unknown id into a sound resource id
+    //convenience function that converts unknown ids into a sound resource id
     
     if (unknown_id >= RESOURCE_COUNT) {
         //is instance; verify
@@ -447,7 +462,9 @@ int dsound_sound_from_instance(int unknown_id) {
     }
 }
 
-bool dsound_instance_from_iid(int iid, int* get_kind, int* get_index, SoundInstance* get_inst) {
+bool dsound_instance_from_iid(
+    int iid, int* get_kind, int* get_index, SoundInstance* get_inst
+) {
     //finds an instance given its unique instance id
     
     *get_kind = ERROR_NON_EXIST;
@@ -573,7 +590,7 @@ void dsound_inst_free(SoundInstance* inst) {
     }
 }
 
-int dsound_load_builtin(int index) {
+void dsound_load_builtin(int index) {
     //grab the gm sound struct's memory stream by traversing memory
     //note: no checks because the parent function already checks valid index
     GMSound* sound=(*gm_sound_mem)[index];
@@ -585,13 +602,13 @@ int dsound_load_builtin(int index) {
         
         //or an empty sound resource.
         if (sound->fname==NULL) {
-            return ERROR_FAIL_LOAD;
+            return;
         }
         
         //the path to the temp file is stored on this field
         FILE* file = _wfopen(sound->fname, L"rb");
         
-        if (file == NULL) return ERROR_NON_EXIST;
+        if (file == NULL) return;
         
         fseek(file, 0, SEEK_END);
         int size = ftell(file);
@@ -600,14 +617,21 @@ int dsound_load_builtin(int index) {
         fread(buffer, size, 1, file);
         fclose(file);
         
-        int id = dsound_add_mem(buffer, size, sound->kind);
+        dsound_add_mem_index(index, buffer, size, sound->kind);
         
         free(buffer);
-        
-        return id;
     } else {
-        //it's a valid builtin sound type loaded in memory, we can just grab it...
-        return dsound_add_mem(sound->memstream->memory,sound->memstream->size,sound->kind);
+        //it's a valid builtin sound type loaded in memory
+        //we can just grab it...
+        dsound_add_mem_index(
+            index,
+            sound->memstream->memory,
+            sound->memstream->size,
+            sound->kind
+        );
+        
+        //we should also unload it to prevent double memory usage by sounds
+        //todo: unload sound
     }
 }
 
@@ -632,10 +656,14 @@ int dsound_add_file(char* fname, int kind) {
 }
 
 int dsound_add_mem(char* buffer, int length, int kind) {
-    //adds a new sound resource from a buffer
-    
     int id = dsound_get_free_resource();
     if (id < 0) return id;
+    
+    return dsound_add_mem_index(id, buffer, length, kind);
+}
+
+int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
+    //adds a new sound resource from a buffer
     
     LPDIRECTSOUNDBUFFER secbuffer;
     int samplerate, channels, bits;
