@@ -266,6 +266,16 @@ void dsound_load_sound_resources();
 //system boilerplate
 
 
+bool WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
+    if (fdwReason != DLL_PROCESS_ATTACH) return true;
+
+    HANDLE proc = GetCurrentProcess();
+
+    //void *ptr;
+    //ptr = (void *) (value to write);
+    //WriteProcessMemory(proc, (void *) (0x61ee6b + 1), &ptr, 4, nullptr);
+}
+
 DSBUFFERDESC* describe_buffer(DWORD flags, WAVEFORMATEX* format, DWORD size) {
     //fills and returns a directsound buffer descriptor structure
     
