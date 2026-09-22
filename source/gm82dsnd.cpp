@@ -25,13 +25,10 @@
   Todo
   ----
   
-- load sounds from runner memory.
 - ability to name sounds, and use the names where functions expect indexes.
   this means all gml functions must check the type of the index argument.
   sounds added from file are automatically named with the filename, just like
   the old sound extension. this is implemented via a dsmap in gml.
-- "persistent" sounds that stay between rooms, any sounds that are not
-  persistent will stop when changing rooms.
 - tracker support via libxmp.
 - implement dsound_setpause.
 
@@ -94,6 +91,9 @@
 
 #define REPEAT(x,n) for (int x = 0; x < (n); ++x)
 
+#define runner_function(type, name, addr, ...)\
+    type (*name)(__VA_ARGS__) = (type(*)(__VA_ARGS__))addr;
+
 
 //---------------------------------------------------------------------------//
 //debug helpers 🖐
@@ -155,7 +155,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     #pragma pack(pop)
 
 
-//gm 8.1 memory structures
+//runner hacking
     struct TMemoryStream {
         uint32_t vfp;
         char* memory;
@@ -180,9 +180,11 @@ extern void debug_message(const wchar_t* msg, int value) {
 
     static GMSound*** gm_sound_mem = (GMSound***)0x6840c0;
     static uint32_t* gm_sound_count = (uint32_t*)0x6840c8;
+    
+    runner_function(void,YY_sound_free,0x00514154,int);
 
 
-//sound structs
+//objects
     struct SoundResource {
         LPDIRECTSOUNDBUFFER buffer;
         int index;
@@ -226,9 +228,10 @@ extern void debug_message(const wchar_t* msg, int value) {
 
 
 //global variables
-    double global_volume = 0.7;
-    int last_instance_id = RESOURCE_COUNT;
-    int background_instance = -4;
+    double VOLUME = 0.7;
+    int LAST_INST_ID = RESOURCE_COUNT;
+    int BGM_INST_ID = -4;
+    int BUILTIN_COUNT = 0;
 
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
@@ -238,9 +241,8 @@ extern void debug_message(const wchar_t* msg, int value) {
 //function prototypes
 
 
-void dll_init();
-void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD);
-
+void dsound_hook();
+void dsound_init();
 void dsound_thread_update();
 void dsound_load_builtin(int);
 int dsound_add_file(char*, int);
@@ -254,12 +256,11 @@ void dsound_stop_inst(int);
 void dsound_inst_free(SoundInstance*);
 LONG dsound_volume_formula(double);
 LONG dsound_pan_formula(double);
-void dsound_set_global_volume(double);
+void dsound_set_volume(double);
 int dsound_sound_from_instance(int);
 bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
 void dsound_stop_nonp();
 void dsound_setpause(int,bool);
-void dsound_load_sound_resources();
 
 
 //---------------------------------------------------------------------------//
@@ -267,13 +268,17 @@ void dsound_load_sound_resources();
 
 
 bool WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
-    if (fdwReason != DLL_PROCESS_ATTACH) return true;
+    //hooks runner and disables preload for all sound resources
+    
+    if (fdwReason == DLL_PROCESS_ATTACH) dsound_hook();
+    
+    return true;
+}
 
-    HANDLE proc = GetCurrentProcess();
-
-    //void *ptr;
-    //ptr = (void *) (value to write);
-    //WriteProcessMemory(proc, (void *) (0x61ee6b + 1), &ptr, 4, nullptr);
+void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD) {
+    //called in the multimedia timer thread
+    
+    dsound_thread_update();
 }
 
 DSBUFFERDESC* describe_buffer(DWORD flags, WAVEFORMATEX* format, DWORD size) {
@@ -304,7 +309,109 @@ WAVEFORMATEX* describe_format(int samplerate, int channels, int bits) {
     return &FormatDescriptor;
 }
 
-void dll_init() {
+
+//---------------------------------------------------------------------------//
+//Game Maker interface
+
+
+GMREAL __dsound_init() {
+    dsound_init();
+    return 0;
+}
+
+GMREAL __dsound_update(double frame_ms) {    
+    dsound_frame_update((int)frame_ms);    
+    return 0;
+}
+
+GMREAL __dsound_add_file(char* fname, double kind) {
+    return (double)dsound_add_file(fname, (int)kind);
+}
+
+GMREAL __dsound_add_mem(double buffer, double length, double kind) {
+    return (double)dsound_add_mem((char*)(int)buffer, (int)length, (int) kind);
+}
+
+GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
+    return (double)dsound_play((int)index, (loop>0.5), vol, pan, pitch);
+}
+
+GMREAL __dsound_glob_vol(double vol) {
+    dsound_set_volume(vol);
+    return 0;
+}
+
+GMREAL __dsound_exists(double index) {
+    if (index < 0) return 0;
+    if (index >= RESOURCE_COUNT) {
+        int kind, iid;
+        SoundInstance* inst = NULL;
+        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
+            return inst -> exists?1:0;
+        }
+        return 0;
+    }
+    return sound_resources[(int)index].exists?1:0;
+}
+
+GMREAL __dsound_getkind(double index) {
+    int sid = dsound_sound_from_instance((int)index);
+    if (sid < 0) return sid;
+    return (double)sound_resources[sid].kind;
+}
+
+GMREAL __dsound_getpreload(double index) {
+    int sid = dsound_sound_from_instance((int)index);
+    if (sid < 0) return sid;
+    return (double)sound_resources[sid].preload;
+}
+
+GMREAL __dsound_insts(double index) {
+    if (index < 0 || index >= RESOURCE_COUNT) return false;
+    return (double)sound_resources[(int)index].inst_count;
+}
+
+GMREAL __dsound_get_builtin_count() {
+    return (double)BUILTIN_COUNT;
+}
+
+GMREAL __dsound_stop_nonpersist() {
+    dsound_stop_nonp();
+    return 0;
+}
+
+GMREAL __dsound_setpause(double index, double pause) {
+    dsound_setpause((int)index,pause>0.5);
+    return 0;
+}
+
+GMREAL __dsound_getbgid() {
+    int kind,index;
+    SoundInstance* inst = NULL;
+    if (dsound_instance_from_iid(BGM_INST_ID, &kind, &index, inst)) {
+        return (double)BGM_INST_ID;
+    }
+    return -4;
+}
+
+
+//---------------------------------------------------------------------------//
+//internals
+
+
+void dsound_hook() {
+    //hooks runner and disables 'preload' on all sound resources
+    
+    BUILTIN_COUNT = *gm_sound_count;
+    GMSound* sound;
+    
+    REPEAT(i, BUILTIN_COUNT) {
+        sound=(*gm_sound_mem)[i];
+        if (sound) sound->preload = 0;
+    }
+}
+
+void dsound_init() {
     //initializes all systems
     
     
@@ -344,112 +451,9 @@ void dll_init() {
     
     
     //load builtin sounds
-        dsound_load_sound_resources();
-}
-
-void CALLBACK timer_callback(UINT, UINT, DWORD, DWORD, DWORD) {
-    //called in the multimedia timer thread
-    
-    dsound_thread_update();
-}
-
-
-//---------------------------------------------------------------------------//
-//Game Maker interface
-
-
-GMREAL __dsound_init() {
-    dll_init();    
-    return 0;
-}
-
-GMREAL __dsound_update(double frame_ms) {    
-    dsound_frame_update((int)frame_ms);    
-    return 0;
-}
-
-GMREAL __dsound_add_file(char* fname, double kind) {
-    return (double)dsound_add_file(fname, (int)kind);
-}
-
-GMREAL __dsound_add_mem(double buffer, double length, double kind) {
-    return (double)dsound_add_mem((char*)(int)buffer, (int)length, (int) kind);
-}
-
-GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
-    return (double)dsound_play((int)index, (loop>0.5), vol, pan, pitch);
-}
-
-GMREAL __dsound_glob_vol(double vol) {
-    dsound_set_global_volume(vol);
-    return 0;
-}
-
-GMREAL __dsound_exists(double index) {
-    if (index < 0) return 0;
-    if (index >= RESOURCE_COUNT) {
-        int kind, iid;
-        SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
-            return inst -> exists?1:0;
+        REPEAT(i, BUILTIN_COUNT) if ((*gm_sound_mem)[i]) {
+            dsound_load_builtin(i);
         }
-        return 0;
-    }
-    return sound_resources[(int)index].exists?1:0;
-}
-
-GMREAL __dsound_getkind(double index) {
-    int sid = dsound_sound_from_instance((int)index);
-    if (sid < 0) return sid;
-    return (double)sound_resources[sid].kind;
-}
-
-GMREAL __dsound_getpreload(double index) {
-    int sid = dsound_sound_from_instance((int)index);
-    if (sid < 0) return sid;
-    return (double)sound_resources[sid].preload;
-}
-
-GMREAL __dsound_insts(double index) {
-    if (index < 0 || index >= RESOURCE_COUNT) return false;
-    return (double)sound_resources[(int)index].inst_count;
-}
-
-GMREAL __dsound_get_builtin_count() {
-    return (double)*gm_sound_count;
-}
-
-GMREAL __dsound_stop_nonpersist() {
-    dsound_stop_nonp();
-    return 0;
-}
-
-GMREAL __dsound_setpause(double index, double pause) {
-    dsound_setpause((int)index,pause>0.5);
-    return 0;
-}
-
-GMREAL __dsound_getbgid() {
-    int kind,index;
-    SoundInstance* inst = NULL;
-    if (dsound_instance_from_iid(background_instance, &kind, &index, inst)) {
-        return (double)background_instance;
-    }
-    return -4;
-}
-
-
-//---------------------------------------------------------------------------//
-//internals
-
-
-void dsound_load_sound_resources() {
-    //loads all sound resources at game start
-    int count = *gm_sound_count;
-    
-    REPEAT(i, count) if ((*gm_sound_mem)[i]) {
-        dsound_load_builtin(i);
-    }
 }
 
 int dsound_sound_from_instance(int unknown_id) {
@@ -640,9 +644,11 @@ void dsound_load_builtin(int index) {
             sound->kind
         );
         
-        //we should also unload it to prevent double memory usage by sounds
-        //todo: unload sound
+        //we should also destroy it to save memory
+        YY_sound_free(index);
     }
+    
+    //todo: apply properties from the sound struct's props
 }
 
 int dsound_add_file(char* fname, int kind) {
@@ -764,7 +770,7 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     LPDIRECTSOUNDBUFFER clone;
     vibe_check(Device->DuplicateSoundBuffer(sound->buffer, &clone));
     
-    double volume_final = sound->volume * vol * global_volume;
+    double volume_final = sound->volume * vol * VOLUME;
     double pan_final = sound->pan + pan;
     double pitch_final = sound->pitch * pitch;
     
@@ -776,12 +782,12 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
     
     if (kind == 1) {
-        background_instance = last_instance_id;
+        BGM_INST_ID = LAST_INST_ID;
     }
     
     inst->sound = sound;
     inst->clone_buffer = clone;
-    inst->index = last_instance_id;
+    inst->index = LAST_INST_ID;
     inst->volume = volume_final;
     inst->pan = pan_final;
     inst->pitch = pitch_final;
@@ -797,7 +803,7 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     
     sound->inst_count++;
     
-    last_instance_id++;
+    LAST_INST_ID++;
     
     if (loop) {
         vibe_check(clone->Play(0, 0, DSBPLAY_LOOPING));
@@ -808,8 +814,8 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     return inst->index;
 }
 
-void dsound_set_global_volume(double vol) {
-    global_volume = min(1.0,max(0.0,vol));
+void dsound_set_volume(double vol) {
+    VOLUME = min(1.0,max(0.0,vol));
 }
 
 void dsound_setpause(int index, bool paused) {
