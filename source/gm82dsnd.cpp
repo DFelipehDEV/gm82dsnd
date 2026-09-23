@@ -31,6 +31,7 @@
   the old sound extension. this is implemented via a dsmap in gml.
 - tracker support via libxmp.
 - implement dsound_setpause.
+- implement SET_LIN_VOLUME.
 
 
   Notes
@@ -218,6 +219,7 @@ extern void debug_message(const wchar_t* msg, int value) {
         bool playing;
         bool looping;        
         bool persistent;
+        bool scheduled;
     };
 
 
@@ -230,8 +232,12 @@ extern void debug_message(const wchar_t* msg, int value) {
 //global variables
     double VOLUME = 0.7;
     int LAST_INST_ID = RESOURCE_COUNT;
+    int LAST_SND_ID;
     int BGM_INST_ID = -4;
     int BUILTIN_COUNT = 0;
+    bool SET_LIN_VOLUME = true;
+    bool SET_SCHEDULER = true;
+    bool SET_SND_INC_IDS = true;
 
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
@@ -419,6 +425,15 @@ GMREAL __dsound_getbgid() {
     return -4;
 }
 
+GMREAL __dsound_settings(double setting, double value) {
+    switch ((int)setting) {
+        case 0: SET_LIN_VOLUME = (value>0.5); break;
+        case 1: SET_SCHEDULER = (value>0.5); break;
+        case 2: SET_SND_INC_IDS = (value>0.5); break;
+    }    
+    return 0;
+}
+
 
 //---------------------------------------------------------------------------//
 //internals
@@ -479,6 +494,8 @@ void dsound_init() {
         REPEAT(i, BUILTIN_COUNT) if ((*gm_sound_mem)[i]) {
             dsound_load_builtin(i);
         }
+        LAST_SND_ID = BUILTIN_COUNT;
+        if (LAST_SND_ID == 0) LAST_SND_ID = 1;
 }
 
 int dsound_sound_from_instance(int unknown_id) {
@@ -540,6 +557,21 @@ void dsound_frame_update(int frame_ms) {
         inst = &sound_instances[kind][i];
         if (inst->exists) {            
             inst->age++;
+            if (SET_SCHEDULER) {
+                //if the scheduler is enabled, check that
+                if (inst->scheduled) {
+                    inst->scheduled = false;
+                    if (inst->looping) {
+                        vibe_check(
+                            inst->clone_buffer->Play(0, 0, DSBPLAY_LOOPING)
+                        );
+                    } else {
+                        vibe_check(
+                            inst->clone_buffer->Play(0, 0, 0)
+                        );
+                    }
+                }
+            }
             if (inst->playing && !inst->looping) {
                 DWORD status = 0;
                 inst->clone_buffer->GetStatus(&status);
@@ -580,9 +612,18 @@ LONG dsound_pan_formula(double pan) {
 int dsound_get_free_resource() {
     //returns an available index to create a sound resource
     
-    REPEAT(i, RESOURCE_COUNT) {
-        if (!sound_resources[i].exists) return i;
+    if (SET_SND_INC_IDS) {
+        //incrementing ids only; get the next one
+        return LAST_SND_ID;
     }
+    
+    //holes allowed
+    REPEAT(i, RESOURCE_COUNT) {
+        //we do not use resource zero
+        if (i>0)
+            if (!sound_resources[i].exists) return i;
+    }
+    
     return ERROR_NO_SPACE;
 }
 
@@ -703,9 +744,20 @@ int dsound_add_file(char* fname, int kind) {
 
 int dsound_add_mem(char* buffer, int length, int kind) {
     int id = dsound_get_free_resource();
+    
+    //there is no space!
     if (id < 0) return id;
     
-    return dsound_add_mem_index(id, buffer, length, kind);
+    //add the sound.
+    id = dsound_add_mem_index(id, buffer, length, kind);
+    
+    //I am error.
+    if (id<0) return id;
+    
+    //increment id if that's enabled
+    if (SET_SND_INC_IDS) LAST_SND_ID++;
+    
+    return id;
 }
 
 int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
@@ -835,10 +887,16 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     
     LAST_INST_ID++;
     
-    if (loop) {
-        vibe_check(clone->Play(0, 0, DSBPLAY_LOOPING));
+    if (SET_SCHEDULER) {
+        //schedule play
+        inst->scheduled = true;
     } else {
-        vibe_check(clone->Play(0, 0, 0));
+        //scheduler disabled. play immediately
+        if (loop) {
+            vibe_check(clone->Play(0, 0, DSBPLAY_LOOPING));
+        } else {
+            vibe_check(clone->Play(0, 0, 0));
+        }
     }
     
     return inst->index;

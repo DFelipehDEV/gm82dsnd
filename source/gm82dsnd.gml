@@ -21,8 +21,6 @@
     - sound_add_buffer
     - sound_add_buffer_raw
     - sound_add_directory
-    - sound_volume
-    - sound_pan
     - sound_fade
     - sound_stop
     - sound_stop_all
@@ -30,7 +28,6 @@
     - sound_discard
     - sound_replace
     - sound_restore
-    - sound_pitch
     - sound_get_instance_count
     - sound_get_instance_list
     - sound_get_frequency
@@ -253,6 +250,16 @@
 
 //---------------------------------------------------------------------------//
 //new api
+
+
+#define sound_settings
+    ///sound_settings(setting,value)
+    //Changes extension configuration. All settings are on by default. Turning all settings off emulates vanilla Game Maker behavior.
+    //dsound_use_linear_volume - use linear volume instead of Game Maker's native logarithmic volume scale.
+    //dsound_use_scheduler - Schedule sound playing and instance property changes to frame boundaries.
+    //dsound_use_incrementing_ids - New sounds are assigned incrementing ids, instead of reusing free indexes, same as Game Maker.
+    
+    __dsound_settings(argument0,argument1)
 
 
 #define sound_add_included

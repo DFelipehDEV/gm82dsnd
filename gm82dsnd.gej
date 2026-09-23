@@ -595,6 +595,18 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_settings",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_settings(setting,value)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_set_loop",
 					"extname": "",
 					"calltype": 2,
@@ -754,6 +766,21 @@
 					"name": "kind_streamed",
 					"value": "3",
 					"hidden": false
+				},
+				{
+					"name": "dsound_use_linear_volume",
+					"value": "0",
+					"hidden": false
+				},
+				{
+					"name": "dsound_use_scheduler",
+					"value": "1",
+					"hidden": false
+				},
+				{
+					"name": "dsound_use_incrementing_ids",
+					"value": "2",
+					"hidden": false
 				}
 			]
 		},
@@ -907,6 +934,18 @@
 					"hidden": false,
 					"argtypes": [
 						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_settings",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": false,
+					"argtypes": [
 						2,
 						2
 					],
