@@ -354,6 +354,31 @@ GMREAL __dsound_exists(double index) {
     return sound_resources[(int)index].exists?1:0;
 }
 
+GMREAL __dsound_setter(double index, double op, double value) {
+    if (index < 0) return 0;
+    if (index >= RESOURCE_COUNT) {
+        int kind, iid;
+        SoundInstance* inst = NULL;
+        if (dsound_instance_from_iid((int)index, &kind, &iid, inst)) {
+            switch ((int)op) {
+                case 0: inst->volume = value; break;
+                case 1: inst->pan    = value; break;
+                case 2: inst->pitch  = value; break;
+            }
+        }
+        
+        return 0;
+    }
+    
+    switch ((int)op) {
+        case 0: sound_resources[(int)index].volume = value; break;
+        case 1: sound_resources[(int)index].pan    = value; break;
+        case 2: sound_resources[(int)index].pitch  = value; break;
+    }
+    
+    return 0;
+}
+
 GMREAL __dsound_getkind(double index) {
     int sid = dsound_sound_from_instance((int)index);
     if (sid < 0) return sid;
@@ -633,6 +658,9 @@ void dsound_load_builtin(int index) {
         
         dsound_add_mem_index(index, buffer, size, sound->kind);
         
+        sound_resources[index].volume = pow(10.0,(sound->volume)*3.0-1.0)/100.0;
+        sound_resources[index].pan = sound->pan;
+        
         free(buffer);
     } else {
         //it's a valid builtin sound type loaded in memory
@@ -644,11 +672,13 @@ void dsound_load_builtin(int index) {
             sound->kind
         );
         
+        //apply volume and pan from the sound resource
+        sound_resources[index].volume = pow(10.0,(sound->volume)*3.0-1.0)/100.0;
+        sound_resources[index].pan = sound->pan;
+        
         //we should also destroy it to save memory
         YY_sound_free(index);
     }
-    
-    //todo: apply properties from the sound struct's props
 }
 
 int dsound_add_file(char* fname, int kind) {

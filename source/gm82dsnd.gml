@@ -184,11 +184,15 @@
 
 #define sound_volume
     ///sound_volume(index,value)
+    
+    __dsound_setter(__dsound_name_parser(argument0,"sound_volume"),0,argument1)
 
 
 #define sound_pan
     ///sound_pan(index,value)
     
+    __dsound_setter(__dsound_name_parser(argument0,"sound_pan"),1,argument1)
+
 
 #define sound_fade
     ///sound_fade(index,value,time)
@@ -323,6 +327,8 @@
 
 #define sound_pitch
     ///sound_pitch(index,value)
+    
+    __dsound_setter(__dsound_name_parser(argument0,"sound_pitch"),2,argument1)
 
 
 #define sound_add_directory
