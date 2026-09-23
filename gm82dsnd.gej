@@ -778,7 +778,7 @@
 					"hidden": false
 				},
 				{
-					"name": "dsound_use_incrementing_ids",
+					"name": "dsound_reuse_sound_ids",
 					"value": "2",
 					"hidden": false
 				}

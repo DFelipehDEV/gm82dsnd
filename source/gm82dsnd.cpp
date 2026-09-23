@@ -237,7 +237,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     int BUILTIN_COUNT = 0;
     bool SET_LIN_VOLUME = true;
     bool SET_SCHEDULER = true;
-    bool SET_SND_INC_IDS = true;
+    bool SET_REUSE_SNDIDS = true;
 
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
@@ -429,7 +429,7 @@ GMREAL __dsound_settings(double setting, double value) {
     switch ((int)setting) {
         case 0: SET_LIN_VOLUME = (value>0.5); break;
         case 1: SET_SCHEDULER = (value>0.5); break;
-        case 2: SET_SND_INC_IDS = (value>0.5); break;
+        case 2: SET_REUSE_SNDIDS = (value>0.5); break;
     }    
     return 0;
 }
@@ -612,7 +612,7 @@ LONG dsound_pan_formula(double pan) {
 int dsound_get_free_resource() {
     //returns an available index to create a sound resource
     
-    if (SET_SND_INC_IDS) {
+    if (!SET_REUSE_SNDIDS) {
         //incrementing ids only; get the next one
         return LAST_SND_ID;
     }
@@ -754,8 +754,8 @@ int dsound_add_mem(char* buffer, int length, int kind) {
     //I am error.
     if (id<0) return id;
     
-    //increment id if that's enabled
-    if (SET_SND_INC_IDS) LAST_SND_ID++;
+    //increment id if using incrementing ids
+    if (!SET_REUSE_SNDIDS) LAST_SND_ID++;
     
     return id;
 }
