@@ -16,13 +16,12 @@
   Preamble
   --------
 
-  This extension was designed from the ground up using native Windows
-  DirectSound technology to be the new main line Game Maker 8.2 game audio
-  solution.
+  This extension was designed from the ground up using native DirectSound
+  technology to be the definitive Game Maker 8.2 game audio solution.
   
   While not as powerful as 8.2 Sound, this extension is much smaller and
   faster, using up only about 25 KB of exe space when compared to FmodEx's
-  vast 0.7 MB, with much less code running per frame and on function calls,
+  vast 760 KB, with much less code running per frame and per function call,
   leading to better game size, load times and performance.
   
   Additionally, just like how it's done in the Audio extension, in-memory sound
@@ -31,10 +30,10 @@
   start.
   
   Finally, we've added even more quality of life features, such as the concept
-  of persistent sounds, the ability to rename sounds, clear error messages,
+  of persistent sounds, the ability to rename sounds, clearer error messages,
   and other goodies from Sound and Audio such as .wasd sound packs, adding
   sounds from included files, referring to sounds as either strings or indexes,
-  music layering and fading, and much more.
+  music layering and fading, configurable extension behavior, and much more.
 
 
 -------------------------------------------------------------------------------
@@ -77,7 +76,7 @@
       Here we provide an option to reuse dead sound indexes for newly added
       resources. If your code is not designed to handle that, you can disable
       this option to use incrementing ids only and leave deleted sounds
-      permanently deleted.
+      permanently deleted. Additionally, sound resource id 0 is never used.
 
 
 -------------------------------------------------------------------------------
@@ -127,8 +126,8 @@
   Packs
   -----
 
-    This extension implements standard support for WASD (Where's All the Sound
-    Data) packs created with either of the other two sound extensions.
+    This extension implements standard support for WASD packs (Where's All the
+    Sound Data) created by 8.2 Sound or 8.2 Audio.
 
 
 - sound_pack_create
@@ -145,8 +144,7 @@
   
     As usual, this extension allows for individual instances of playing sounds
     to be controlled. All functions that play sounds return an instance id that
-    can then be used in the other functions. All getters and setters accept
-    either sound resources or instance ids.
+    can then be used in the other functions.
 
 
 - sound_play
@@ -244,30 +242,42 @@
   Getters and Setters
   -------------------
 
-    A new logic is used when deciding the properties of instances.
+    All getters and setters accept either sound resources or instance ids.
+    Any sound-only properties, when queried on instances, will instead return
+    the property for the sound resource of which the instance is from -
+    for example, instances do not have a 'preload' attribute.
+    
+    Additionally, new logic is used when deciding the properties of instances.
     
     Usually, when you change the volume or pitch value of a sound resource,
     any changes to an instance of that sound would simply override it.
-    To mitigate this problem, instance properties are now combined with those
-    of the sound resource that it is an instance of.
+    To mitigate this, instance properties are now combined with those of the
+    sound resource of which it is an instance of, as well as the settings for
+    the 'kind' of the sound.
     
     For example, if a sound resource has the following properties:
     
-    - volume: 0.5
-    - pitch: 0.9
-    - pan: -0.1
+    - volume:  0.5
+    - pitch:   0.9
+    - pan:    -0.1
+    
+    and the kind of the sound is set to the following:
+    
+    - volume:  0.75
+    - pitch:   1.0
+    - pan:     0.0
     
     and the instance has the following properties:
     
-    - volume: 0.8
-    - pitch: 0.5
-    - pan: 0.3
+    - volume:  0.8
+    - pitch:   0.5
+    - pan:     0.3
     
     then the resulting sound coming out of the mixer would be:
     
-    - volume: 0.5 * 0.8 = 0.4
-    - pitch: 0.9 * 0.5 = 0.45
-    - pan: -0.1 + 0.3 = 0.2
+    - volume:  0.5 * 0.75 * 0.8 = 0.3
+    - pitch:   0.9 * 1.0  * 0.5 = 0.45
+    - pan:    -0.1 + 0.0  + 0.3 = 0.2
     
     
     This system allows for developers to set baseline values on a sound

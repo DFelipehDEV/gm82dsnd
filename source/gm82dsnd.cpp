@@ -25,13 +25,17 @@
   Todo
   ----
   
-- ability to name sounds, and use the names where functions expect indexes.
-  this means all gml functions must check the type of the index argument.
-  sounds added from file are automatically named with the filename, just like
-  the old sound extension. this is implemented via a dsmap in gml.
-- tracker support via libxmp.
-- implement dsound_setpause.
-- implement SET_LIN_VOLUME.
+    - ogg parser
+    - mp3 parser
+    - tracker parser
+    - buffer add raw
+    - pausing
+    - SET_LIN_VOLUME setting
+    - instance editing
+    - position getting and setting
+    - instance -> SecondaryBuffer property transfer in frame update
+    - instance 3d sound computation in frame update
+    - instance loop point and fading upkeep in timer routine
 
 
   Notes
