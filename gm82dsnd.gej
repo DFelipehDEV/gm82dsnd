@@ -837,23 +837,13 @@
 					"returntype": 2
 				},
 				{
-					"name": "__dsound_getkind",
+					"name": "__dsound_getter",
 					"extname": "",
 					"calltype": 12,
 					"helpline": "",
-					"hidden": true,
+					"hidden": false,
 					"argtypes": [
-						2
-					],
-					"returntype": 2
-				},
-				{
-					"name": "__dsound_getpreload",
-					"extname": "",
-					"calltype": 12,
-					"helpline": "",
-					"hidden": true,
-					"argtypes": [
+						2,
 						2
 					],
 					"returntype": 2

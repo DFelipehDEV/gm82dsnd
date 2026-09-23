@@ -32,9 +32,6 @@
     - sound_get_instance_list
     - sound_get_frequency
     - sound_get_length
-    - sound_get_pan
-    - sound_get_pitch
-    - sound_get_volume
     - sound_get_pos
     - sound_set_pos
     - sound_set_loop
@@ -133,7 +130,7 @@
 #define sound_get_kind
     ///sound_get_kind(ind)  
     
-    return __dsound_getkind(__dsound_name_parser(argument0,"sound_get_kind"))
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_kind"),4)
 
 
 #define sound_get_name
@@ -152,7 +149,7 @@
 #define sound_get_preload
     ///sound_get_preload(ind)
     
-    return __dsound_getpreload(__dsound_name_parser(argument0,"sound_get_preload"))
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_preload"),3)
 
 
 #define sound_global_volume
@@ -354,8 +351,23 @@
 #define sound_get_instance_list
 #define sound_get_length
 #define sound_get_pan
+    ///sound_get_pan(ind)
+    
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),1)
+
+
 #define sound_get_pitch
+    ///sound_get_pitch(ind)
+    
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),2)
+
+
 #define sound_get_volume
+    ///sound_get_volume(ind)
+    
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),0)
+
+
 #define sound_get_pos
     ///sound_get_pos(index)
     

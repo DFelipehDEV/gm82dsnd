@@ -362,6 +362,7 @@ GMREAL __dsound_exists(double index) {
 
 GMREAL __dsound_setter(double index, double op, double value) {
     if (index < 0) return 0;
+    
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
@@ -376,6 +377,8 @@ GMREAL __dsound_setter(double index, double op, double value) {
         return 0;
     }
     
+    if (!sound_resources[(int)index].exists) return 0;
+    
     switch ((int)op) {
         case 0: sound_resources[(int)index].volume = value; break;
         case 1: sound_resources[(int)index].pan    = value; break;
@@ -385,16 +388,36 @@ GMREAL __dsound_setter(double index, double op, double value) {
     return 0;
 }
 
-GMREAL __dsound_getkind(double index) {
-    int sid = dsound_sound_from_instance((int)index);
-    if (sid < 0) return sid;
-    return (double)sound_resources[sid].kind;
-}
-
-GMREAL __dsound_getpreload(double index) {
-    int sid = dsound_sound_from_instance((int)index);
-    if (sid < 0) return sid;
-    return (double)sound_resources[sid].preload;
+GMREAL __dsound_getter(double index, double op) {
+    if (index < 0) return 0;
+    
+    if (index >= RESOURCE_COUNT) {
+        int kind, iid;
+        SoundInstance* inst = NULL;
+        if (dsound_instance_from_iid((int)index, &kind, &iid, inst)) {
+            switch ((int)op) {
+                case 0: return inst->volume;
+                case 1: return inst->pan;
+                case 2: return inst->pitch;
+                case 3: return (double)inst->sound->preload;
+                case 4: return (double)inst->sound->kind;
+            }
+        }
+        
+        return ERROR_NON_EXIST;
+    }
+    
+    if (!sound_resources[(int)index].exists) return ERROR_NON_EXIST;
+    
+    switch ((int)op) {
+        case 0: return sound_resources[(int)index].volume;
+        case 1: return sound_resources[(int)index].pan;
+        case 2: return sound_resources[(int)index].pitch;
+        case 3: return (double)sound_resources[(int)index].preload;
+        case 4: return (double)sound_resources[(int)index].kind;
+    }
+    
+    return ERROR_GENERIC;
 }
 
 GMREAL __dsound_insts(double index) {
@@ -447,7 +470,10 @@ void dsound_hook() {
     
     REPEAT(i, BUILTIN_COUNT) {
         sound=(*gm_sound_mem)[i];
-        if (sound) sound->preload = 0;
+        if (sound) {
+            sound_resources[i].preload = (sound->preload>0);
+            sound->preload = 0;
+        }
     }
 }
 
@@ -833,7 +859,6 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
         sound->exists = true;
         sound->loaded = true;
         sound->persistent = false;
-        sound->preload = true;
         sound->frequency = samplerate;
         sound->volume = 1.0;
         sound->pan = 0.0;
