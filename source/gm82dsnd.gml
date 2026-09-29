@@ -82,16 +82,20 @@
     
     if (is_string(argument0)) {
         if (ds_map_exists(__dsound_map,argument0)) return ds_map_find_value(__dsound_map,argument0)
-        show_error("In function "+argument1+": Sound name ("+argument0+") doesn't exist.",0)
+        __dsound_error(argument1,"Sound name ("+string(argument0)+") doesn't exist.")
         return noone
     }
     
-    if (!sound_exists(argument0)) show_error("In function "+argument1+": Sound index ("+string(argument0)+") doesn't exist.",0)
+    if (!sound_exists(argument0)) __dsound_error(argument1,"Sound index ("+string(argument0)+") doesn't exist.")
     return argument0
 
 
 #define __dsound_error_effects
     //show_error("8.2 DirectSound error: Effects are not currently available.",false)
+
+
+#define __dsound_error
+    show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"In function "+argument0+": "+argument1,0)
 
 
 //---------------------------------------------------------------------------//
@@ -104,12 +108,12 @@
     var __index,__name;
     
     if (!file_exists(argument0)) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add: file ("+string(argument0)+") doesn't exist.",0)
+        __dsound_error("sound_add","File ("+string(argument0)+") doesn't exist.")
         return noone
     }
     
     if (argument1<0 or argument1>7) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add: invalid kind ("+string(argument1)+").",0)
+        __dsound_error("sound_add","Invalid kind ("+string(argument1)+").")
         return noone
     }
     
@@ -119,7 +123,7 @@
         __index=__dsound_add_file(argument0,argument1)
     
     if (__index<0) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-__index],false)
+        __dsound_error("sound_add",__dsound_error[-__index])
         return noone
     } else {
         __name=filename_change_ext(filename_name(argument0),"")
@@ -283,12 +287,12 @@
     var __snd;
     
     if (!file_exists(argument0)) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_ext: file ("+string(argument0)+") doesn't exist.",0)
+        __dsound_error("sound_add_ext","File ("+string(argument0)+") doesn't exist.")
         return noone
     }
     
     if (argument1<0 or argument1>7) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_ext: invalid kind ("+string(argument1)+").",0)
+        __dsound_error("sound_add_ext","Invalid kind ("+string(argument1)+").")
         return noone
     }
     
@@ -305,8 +309,8 @@
     
     var __fname;
     
-    if (kind<0 or kind>7) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included: invalid kind ("+string(argument1)+").",0)
+    if (argument1<0 or argument1>7) {
+        __dsound_error("sound_add_included","Invalid kind ("+string(argument1)+").")
         return noone
     }    
     
@@ -314,7 +318,7 @@
     export_include_file_location(argument0,__fname)
     
     if (!file_exists(__fname)) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included: included file ("+string(argument0)+") failed to export.",0)
+        __dsound_error("sound_add_included","Included file ("+string(argument0)+") failed to export.")
         return noone
     }
     
@@ -327,16 +331,16 @@
     
     var __fname,__snd;
     
-    if (kind<0 or kind>7) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included_ext: invalid kind ("+string(argument1)+").",0)
+    if (argument1<0 or argument1>7) {
+        __dsound_error("sound_add_included_ext","Invalid kind ("+string(argument1)+").")
         return noone
-    }    
+    }     
     
     __fname=temp_directory+"\gm82\sound\"+argument0
     export_include_file_location(argument0,__fname)
     
     if (!file_exists(__fname)) {
-        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included_ext: included file ("+string(argument0)+") failed to export.",0)
+        __dsound_error("sound_add_included_ext","Included file ("+string(argument0)+") failed to export.")
         return noone
     }
     
@@ -351,6 +355,12 @@
 
 #define sound_set_properties
     ///sound_set_properties(index,vol,pitch,pan,persistent)
+    //Sets all properties of a sound at once.
+    
+    if (!sound_exists(argument0)) {
+        __dsound_error("sound_set_properties","Sound ("+string(argument0)+") doesn't exist.")
+        exit
+    }
     
     sound_set_name(argument0,argument1)
     sound_volume(argument0,argument2)
@@ -368,12 +378,15 @@
     var __index,__name;
     
     __index=__dsound_name_parser(argument0,"sound_set_name")
-    if (__index!=noone) {
+    
+    if (__index!=noone) {    
         __name=ds_map_find_value(__dsound_rev_map,__index)
+        
         if (ds_map_exists(__dsound_map,string(argument1))) {
-            show_error("In function sound_set_name: Trying to rename sound ("+__name+"), but sound name ("+argument1+") already exists.",0)
+            __dsound_error("sound_set_name","Trying to rename sound ("+__name+"), but new name ("+argument1+") already exists.")
             exit
         }
+        
         ds_map_delete(__dsound_map,__name)
         ds_map_delete(__dsound_rev_map,__index)
         
@@ -381,7 +394,7 @@
         ds_map_add(__dsound_map,__name,__index)
         ds_map_add(__dsound_rev_map,__index,__name)
     }
-    
+
 
 #define sound_set_persistent
     ///sound_set_persistent(index,persistent)
@@ -391,6 +404,7 @@
     if (__index!=noone) {
         ds_map_set(__dsound_prs_map,__index,!!argument1)
     }
+
 
 #define sound_loop_ext
     ///sound_loop_ext(index,vol,pan,pitch,paused)
@@ -448,13 +462,13 @@
 #define sound_get_pan
     ///sound_get_pan(ind)
     
-    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),1)
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_pan"),1)
 
 
 #define sound_get_pitch
     ///sound_get_pitch(ind)
     
-    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),2)
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_pitch"),2)
 
 
 #define sound_get_pos

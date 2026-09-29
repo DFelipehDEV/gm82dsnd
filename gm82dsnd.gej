@@ -743,6 +743,15 @@
 					"returntype": 2
 				},
 				{
+					"name": "__dsound_error",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "",
+					"hidden": true,
+					"argtypes": null,
+					"returntype": 2
+				},
+				{
 					"name": "__dsound_error_effects",
 					"extname": "",
 					"calltype": 2,
@@ -801,7 +810,7 @@
 					"hidden": false
 				},
 				{
-					"name": "kind_3dsound",
+					"name": "kind_3dsounds",
 					"value": "2",
 					"hidden": false
 				},
@@ -831,13 +840,13 @@
 					"hidden": false
 				},
 				{
-					"name": "kind_sounds",
-					"value": "0",
+					"name": "kind_multimedia",
+					"value": "3",
 					"hidden": false
 				},
 				{
-					"name": "kind_streamed",
-					"value": "3",
+					"name": "kind_sounds",
+					"value": "0",
 					"hidden": false
 				},
 				{

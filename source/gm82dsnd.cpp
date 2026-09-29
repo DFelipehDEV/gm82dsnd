@@ -238,6 +238,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     int LAST_INST_ID = RESOURCE_COUNT;
     int LAST_SND_ID;
     int BGM_INST_ID = -4;
+    int MM_INST_ID = -4;
     int BUILTIN_COUNT = 0;
     bool SET_LIN_VOLUME = true;
     bool SET_SCHEDULER = true;
@@ -882,7 +883,12 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
     
     if (kind == 1) {
+        dsound_inst_stop(BGM_INST_ID);
         BGM_INST_ID = LAST_INST_ID;
+    }
+    if (kind == 3) {
+        dsound_inst_stop(MM_INST_ID);
+        MM_INST_ID = LAST_INST_ID;
     }
     
     inst->sound = sound;
