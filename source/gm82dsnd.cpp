@@ -250,27 +250,35 @@ extern void debug_message(const wchar_t* msg, int value) {
 //---------------------------------------------------------------------------//
 //function prototypes
 
+//internals
+    void dsound_hook();
+    void dsound_init();
+    void dsound_thread_update();
+    void dsound_frame_update(int);
+    int dsound_get_free_resource();
+    int dsound_get_free_instance();
+    int dsound_sound_from_instance(int);
+    bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
+    LONG dsound_volume_formula(double);
+    LONG dsound_pan_formula(double);
 
-void dsound_hook();
-void dsound_init();
-void dsound_thread_update();
-void dsound_load_builtin(int);
-int dsound_add_file(char*, int);
-int dsound_add_mem(char*, int, int);
-int dsound_add_mem_index(int, char*, int, int);
-void dsound_frame_update(int);
-int dsound_get_free_resource();
-int dsound_get_free_instance();
-int dsound_play(int, bool, double, double, double);
-void dsound_stop_inst(int);
-void dsound_inst_free(SoundInstance*);
-LONG dsound_volume_formula(double);
-LONG dsound_pan_formula(double);
-void dsound_set_volume(double);
-int dsound_sound_from_instance(int);
-bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
-void dsound_stop_nonp();
-void dsound_setpause(int,bool);
+//adding sounds
+    void dsound_load_builtin(int);
+    int dsound_add_file(char*, int);
+    int dsound_add_mem(char*, int, int);
+    int dsound_add_mem_index(int, char*, int, int);
+
+//instance control
+    int dsound_play(int, bool, double, double, double);
+    void dsound_inst_start(SoundInstance*);
+    void dsound_inst_stop(int);
+    void dsound_inst_free(SoundInstance*);
+    void dsound_sound_stop(int);
+    void dsound_stop_nonp();
+
+//setters getters
+    void dsound_set_volume(double);
+    void dsound_set_pause(int, bool);
 
 
 //---------------------------------------------------------------------------//
@@ -344,6 +352,16 @@ GMREAL __dsound_add_mem(double buffer, double length, double kind) {
 
 GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
     return (double)dsound_play((int)index, (loop>0.5), vol, pan, pitch);
+}
+
+GMREAL __dsound_stop(double index) {
+    if (index < 0) return 0;
+    if (index >= RESOURCE_COUNT) {
+        dsound_inst_stop((int)index);
+        return 0;
+    }
+    dsound_sound_stop((int)index);
+    return 0;
 }
 
 GMREAL __dsound_glob_vol(double vol) {
@@ -439,7 +457,7 @@ GMREAL __dsound_stop_nonpersist() {
 }
 
 GMREAL __dsound_setpause(double index, double pause) {
-    dsound_setpause((int)index,pause>0.5);
+    dsound_set_pause((int)index,pause>0.5);
     return 0;
 }
 
@@ -528,6 +546,79 @@ void dsound_init() {
         if (LAST_SND_ID == 0) LAST_SND_ID = 1;
 }
 
+void dsound_thread_update() {
+    //thread; use THREAD_MS increments
+    
+    //todo: update all loop points and instance fading here
+}
+
+void dsound_frame_update(int frame_ms) {
+    //gml frame
+    //update instance life and cleanup here
+    
+    SoundInstance* inst;
+    
+    REPEAT(i, INSTANCE_COUNT) REPEAT(kind, 4) {
+        inst = &sound_instances[kind][i];
+        if (inst->exists) {            
+            inst->age++;
+            if (SET_SCHEDULER) {
+                //if the scheduler is enabled, check that
+                if (inst->scheduled) {
+                    inst->scheduled = false;
+                    dsound_inst_start(inst);
+                }
+            }
+            if (inst->playing && !inst->looping) {
+                DWORD status = 0;
+                inst->clone_buffer->GetStatus(&status);
+                if (!(status & DSBSTATUS_PLAYING)) {
+                    dsound_inst_free(inst);
+                }
+            }
+        }
+    }
+}
+
+int dsound_get_free_resource() {
+    //returns an available index to create a sound resource
+    
+    if (!SET_REUSE_SNDIDS) {
+        //incrementing ids only; get the next one
+        return LAST_SND_ID;
+    }
+    
+    //holes allowed
+    REPEAT(i, RESOURCE_COUNT) {
+        //we do not use resource zero
+        if (i>0)
+            if (!sound_resources[i].exists) return i;
+    }
+    
+    return ERROR_NO_SPACE;
+}
+
+int dsound_get_free_instance(int kind) {
+    //finds and returns a free instance index
+    //if one isn't available, the oldest instance is freed and reused
+    
+    SoundInstance* inst;
+    SoundInstance* oldest;
+    int oldest_id = 0;
+    oldest = &sound_instances[kind][oldest_id];
+    REPEAT(i, INSTANCE_COUNT) {
+        inst = &sound_instances[kind][i];
+        if (!inst->exists) return i;
+        
+        if (inst->age > oldest->age) {
+            oldest = inst;
+            oldest_id = i;
+        }
+    }
+    dsound_inst_free(oldest);
+    return oldest_id;
+}
+
 int dsound_sound_from_instance(int unknown_id) {
     //convenience function that converts unknown ids into a sound resource id
     
@@ -571,61 +662,6 @@ bool dsound_instance_from_iid(
     return false;
 }
 
-void dsound_thread_update() {
-    //thread; use THREAD_MS increments
-    
-    //todo: update all loop points and instance fading here
-}
-
-void dsound_frame_update(int frame_ms) {
-    //gml frame
-    //update instance life and cleanup here
-    
-    SoundInstance* inst;
-    
-    REPEAT(i, INSTANCE_COUNT) REPEAT(kind, 4) {
-        inst = &sound_instances[kind][i];
-        if (inst->exists) {            
-            inst->age++;
-            if (SET_SCHEDULER) {
-                //if the scheduler is enabled, check that
-                if (inst->scheduled) {
-                    inst->scheduled = false;
-                    if (inst->looping) {
-                        vibe_check(
-                            inst->clone_buffer->Play(0, 0, DSBPLAY_LOOPING)
-                        );
-                    } else {
-                        vibe_check(
-                            inst->clone_buffer->Play(0, 0, 0)
-                        );
-                    }
-                }
-            }
-            if (inst->playing && !inst->looping) {
-                DWORD status = 0;
-                inst->clone_buffer->GetStatus(&status);
-                if (!(status & DSBSTATUS_PLAYING)) {
-                    dsound_inst_free(inst);
-                }
-            }
-        }
-    }
-}
-
-void dsound_stop_nonp() {
-    //stops all instances that are not persistent - called in room end
-    
-    SoundInstance* inst;
-    
-    REPEAT(i, INSTANCE_COUNT) REPEAT(kind,4) {
-        inst = &sound_instances[kind][i];
-        if (inst->exists && !inst->persistent) {
-            dsound_inst_free(inst);
-        }
-    }
-}
-
 LONG dsound_volume_formula(double vol) {
     //decode log volume used by directsound
     
@@ -639,66 +675,10 @@ LONG dsound_pan_formula(double pan) {
     else return (LONG)(3333.3 * log10(max(0.001,min(1.0,1.0+pan))));
 }
 
-int dsound_get_free_resource() {
-    //returns an available index to create a sound resource
-    
-    if (!SET_REUSE_SNDIDS) {
-        //incrementing ids only; get the next one
-        return LAST_SND_ID;
-    }
-    
-    //holes allowed
-    REPEAT(i, RESOURCE_COUNT) {
-        //we do not use resource zero
-        if (i>0)
-            if (!sound_resources[i].exists) return i;
-    }
-    
-    return ERROR_NO_SPACE;
-}
 
-int dsound_get_free_instance(int kind) {
-    //finds and returns a free instance index
-    //if one isn't available, the oldest instance is freed and reused
-    
-    SoundInstance* inst;
-    SoundInstance* oldest;
-    int oldest_id = 0;
-    oldest = &sound_instances[kind][oldest_id];
-    REPEAT(i, INSTANCE_COUNT) {
-        inst = &sound_instances[kind][i];
-        if (!inst->exists) return i;
-        
-        if (inst->age > oldest->age) {
-            oldest = inst;
-            oldest_id = i;
-        }
-    }
-    dsound_inst_free(oldest);
-    return oldest_id;
-}
+//---------------------------------------------------------------------------//
+//adding sounds
 
-void dsound_stop_inst(int iid) {
-    //stops an instance given its instance id
-    
-    int kind,index;
-    SoundInstance* inst = NULL;
-    
-    if (dsound_instance_from_iid(iid, &kind, &index, inst)) {
-        dsound_inst_free(inst);
-    }
-}
-
-void dsound_inst_free(SoundInstance* inst) {
-    //frees an instance by reference
-    
-    if (inst->exists) {
-        inst->sound->inst_count--;
-        inst->clone_buffer->Stop();
-        inst->clone_buffer->Release();
-        inst->exists = false;
-    }
-}
 
 void dsound_load_builtin(int index) {
     //grab the gm sound struct's memory stream by traversing memory
@@ -817,8 +797,10 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
             data += 4;            
     } else if (memcmp("Ogg",buffer,3)==0) {
         //read ogg
+        return ERROR_FAIL_LOAD;
     } else if (memcmp("ID3",buffer,3)==0) {
         //read mp3
+        return ERROR_FAIL_LOAD;
     } else {
         //unrecognized file type
         return ERROR_FAIL_LOAD;
@@ -874,6 +856,11 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
     return id;
 }
 
+
+//---------------------------------------------------------------------------//
+//instance control
+
+
 int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     SoundResource* sound = &sound_resources[index];
     if (!sound->exists) return ERROR_NON_EXIST;
@@ -921,21 +908,84 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
         inst->scheduled = true;
     } else {
         //scheduler disabled. play immediately
-        if (loop) {
-            vibe_check(clone->Play(0, 0, DSBPLAY_LOOPING));
-        } else {
-            vibe_check(clone->Play(0, 0, 0));
-        }
+        dsound_inst_start(inst);
     }
     
     return inst->index;
 }
 
+void dsound_inst_start(SoundInstance* inst) {
+    if (inst->looping) {
+        vibe_check(
+            inst->clone_buffer->Play(0, 0, DSBPLAY_LOOPING)
+        );
+    } else {
+        vibe_check(
+            inst->clone_buffer->Play(0, 0, 0)
+        );
+    }
+}
+
+void dsound_inst_stop(int iid) {
+    //stops an instance given its instance id
+    
+    int kind,index;
+    SoundInstance* inst = NULL;
+    
+    if (dsound_instance_from_iid(iid, &kind, &index, inst)) {
+        dsound_inst_free(inst);
+    }
+}
+
+void dsound_inst_free(SoundInstance* inst) {
+    //frees an instance by reference
+    
+    if (inst->exists) {
+        inst->sound->inst_count--;
+        inst->clone_buffer->Stop();
+        inst->clone_buffer->Release();
+        inst->exists = false;
+    }
+}
+
+void dsound_sound_stop(int index) {
+    //stops all instances of a sound
+    
+    SoundResource* sound = &sound_resources[index];
+    
+    SoundInstance* inst;
+    
+    REPEAT(i, INSTANCE_COUNT) REPEAT(kind,4) {
+        inst = &sound_instances[kind][i];
+        if (inst->exists && inst->sound == sound) {
+            dsound_inst_free(inst);
+        }
+    }
+}
+
+void dsound_stop_nonp() {
+    //stops all instances that are not persistent - called in room end
+    
+    SoundInstance* inst;
+    
+    REPEAT(i, INSTANCE_COUNT) REPEAT(kind,4) {
+        inst = &sound_instances[kind][i];
+        if (inst->exists && !inst->persistent) {
+            dsound_inst_free(inst);
+        }
+    }
+}
+
+
+//---------------------------------------------------------------------------//
+//setters getters
+
+
 void dsound_set_volume(double vol) {
     VOLUME = min(1.0,max(0.0,vol));
 }
 
-void dsound_setpause(int index, bool paused) {
+void dsound_set_pause(int index, bool paused) {
     //etc
 }
 

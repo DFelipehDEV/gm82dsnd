@@ -21,7 +21,6 @@
     - sound_add_buffer_raw
     - sound_add_directory
     - sound_fade
-    - sound_stop
     - sound_stop_all
     - sound_delete
     - sound_discard
@@ -97,6 +96,16 @@
     
     var __index,__name;
     
+    if (!file_exists(argument0)) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add: file ("+string(argument0)+") doesn't exist.",0)
+        return noone
+    }
+    
+    if (argument1<0 or argument1>7) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add: invalid kind ("+string(argument1)+").",0)
+        return noone
+    }
+    
     if (__dsound_search_dir!="")
         __index=__dsound_add_file(__dsound_search_dir+argument0,argument1)
     else
@@ -104,6 +113,7 @@
     
     if (__index<0) {
         show_error("8.2 DirectSound error: "+chr(13)+chr(10)+__dsound_error[-__index],false)
+        return noone
     } else {
         __name=filename_change_ext(filename_name(argument0),"")
         ds_map_add(__dsound_map,__name,__index)
@@ -193,6 +203,8 @@
 
 #define sound_stop
     ///sound_stop(index)
+    
+    __dsound_stop(__dsound_name_parser(argument0,"sound_stop"))
 
     
 #define sound_stop_all
@@ -251,20 +263,93 @@
 #define sound_settings
     ///sound_settings(setting,value)
     //Changes extension configuration. All settings are on by default. Turning all settings off emulates vanilla Game Maker behavior.
-    //dsound_use_linear_volume - Game Maker's volume scale is a logarithmic attenuation value, from 30 to 100, where half loudness is somewhere around 85, and 60 is inaudible. Our extension instead uses a more intuitive linear volume scale where 50 is half as loud, and 0 is inaudible. If your project uses logarithmic volume, you can disable this option to restore the vanilla volume scale.
+    //dsound_use_linear_volume - Game Maker's volume scale is a logarithmic attenuation value, from 30 to 100, where half loudness is somewhere around 85, and 60 is inaudible. Our extension instead uses a more intuitive linear volume scale where 50 is half as loud, and 0 is inaudible. If your project uses logarithmic volume, you can disable this option to restore the vanilla volume scale. Note that the volume value from the slider in the sound resource window is always logarithmic.
     //dsound_use_scheduler - Game maker sound functions act immediately upon call. Sometimes this is undesirable, such as when you want to play a sound and then immediately change the settings for it somewhere else within the same frame - if your game is laggy, you could hear a spike as the sound plays at full volume for a very short period of time. In order to mitigate this, our extension uses a system where newly played sounds and changes to sound instances are only executed once per step, in a way where sound operations are more consistent and predictable. Turning this option off will instead apply sound operations immediately.
     //dsound_reuse_sound_ids - Normally, Game Maker assigns incrementing ids to newly added sounds, but this means you will eventually run out of space for sounds at 100000 where our extension's instance ids start. Here we provide an option to reuse dead sound indexes for newly added resources. If your code is not designed to handle that, you can disable this option to use incrementing ids only and leave deleted sounds permanently deleted. Additionally, sound resource id 0 is never used.
     
     __dsound_settings(argument0,argument1)
 
 
+#define sound_add_ext
+    ///sound_add_ext(fname,kind,name,vol,pan,pitch,persistent)
+    //Adds a sound, and sets its internal name and properties.
+    var __snd;
+    
+    if (!file_exists(argument0)) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_ext: file ("+string(argument0)+") doesn't exist.",0)
+        return noone
+    }
+    
+    if (argument1<0 or argument1>7) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_ext: invalid kind ("+string(argument1)+").",0)
+        return noone
+    }
+    
+    __snd=sound_add(argument0,argument1,1)
+    
+    sound_set_properties(__snd,argument2,argument3,argument4,argument5,argument6)
+    
+    return __snd
+    
+    
 #define sound_add_included
-    ///sound_add_included(name,kind)
+    ///sound_add_included(fname,kind)
     //Adds a sound from an included file.
+    
     var __fname;
+    
+    if (kind<0 or kind>7) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included: invalid kind ("+string(argument1)+").",0)
+        return noone
+    }    
+    
     __fname=temp_directory+"\gm82\sound\"+argument0
     export_include_file_location(argument0,__fname)
+    
+    if (!file_exists(__fname)) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included: included file ("+string(argument0)+") failed to export.",0)
+        return noone
+    }
+    
     return sound_add(__fname,argument1,1)
+
+
+#define sound_add_included_ext
+    ///sound_add_included_ext(fname,kind,name,vol,pan,pitch,persistent)
+    //Adds a sound from an included file.
+    
+    var __fname,__snd;
+    
+    if (kind<0 or kind>7) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included_ext: invalid kind ("+string(argument1)+").",0)
+        return noone
+    }    
+    
+    __fname=temp_directory+"\gm82\sound\"+argument0
+    export_include_file_location(argument0,__fname)
+    
+    if (!file_exists(__fname)) {
+        show_error("8.2 DirectSound error: "+chr(13)+chr(10)+"in function sound_add_included_ext: included file ("+string(argument0)+") failed to export.",0)
+        return noone
+    }
+    
+    __snd=sound_add(__fname,argument1,1)
+    
+    sound_set_properties(__snd,argument2,argument3,argument4,argument5,argument6)
+    
+    return __snd
+
+
+#define sound_add_directory
+
+#define sound_set_properties
+    ///sound_set_properties(index,vol,pitch,pan,persistent)
+    
+    sound_set_name(argument0,argument1)
+    sound_volume(argument0,argument2)
+    sound_pan(argument0,argument3)
+    sound_pitch(argument0,argument4)
+    sound_set_persistent(argument0,argument5)
 
 
 #define sound_set_name
@@ -278,14 +363,14 @@
     __index=__dsound_name_parser(argument0,"sound_set_name")
     if (__index!=noone) {
         __name=ds_map_find_value(__dsound_rev_map,__index)
-        if (ds_map_exists(__dsound_map,argument1)) {
+        if (ds_map_exists(__dsound_map,string(argument1))) {
             show_error("In function sound_set_name: Trying to rename sound ("+__name+"), but sound name ("+argument1+") already exists.",0)
             exit
         }
         ds_map_delete(__dsound_map,__name)
         ds_map_delete(__dsound_rev_map,__index)
         
-        __name=argument1
+        __name=string(argument1)
         ds_map_add(__dsound_map,__name,__index)
         ds_map_add(__dsound_rev_map,__index,__name)
     }
@@ -328,15 +413,6 @@
     sound_loop(argument0)
 
 
-#define sound_pitch
-    ///sound_pitch(index,value)
-    
-    __dsound_setter(__dsound_name_parser(argument0,"sound_pitch"),2,argument1)
-
-
-#define sound_add_directory
-#define sound_add_included
-
 #define sound_background_instance
     ///sound_background_instance()
     //Returns the instance id of the currently playing background music, or noone if there isn't one.
@@ -345,10 +421,23 @@
     return __dsound_getbgid()
 
 
+#define sound_pitch
+    ///sound_pitch(index,value)
+    
+    __dsound_setter(__dsound_name_parser(argument0,"sound_pitch"),2,argument1)
+
+
 #define sound_get_frequency
 #define sound_get_instance_count
 #define sound_get_instance_list
 #define sound_get_length
+
+#define sound_get_volume
+    ///sound_get_volume(ind)
+    
+    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),0)
+
+
 #define sound_get_pan
     ///sound_get_pan(ind)
     
@@ -359,12 +448,6 @@
     ///sound_get_pitch(ind)
     
     return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),2)
-
-
-#define sound_get_volume
-    ///sound_get_volume(ind)
-    
-    return __dsound_getter(__dsound_name_parser(argument0,"sound_get_volume"),0)
 
 
 #define sound_get_pos

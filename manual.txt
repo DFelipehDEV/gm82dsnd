@@ -57,6 +57,8 @@
       Our extension instead uses a more intuitive linear volume scale where
       50 is half as loud, and 0 is inaudible. If your project uses logarithmic
       volume, you can disable this option to restore the vanilla volume scale.
+      Note that the volume value from the slider in the sound resource window
+      is always logarithmic.
 
   - dsound_use_scheduler
       Game maker sound functions act immediately upon call. Sometimes this is
@@ -92,12 +94,15 @@
 
 
 - sound_add
+    Note that the preload option is ignored.
 
 - sound_add_ext
 
 - sound_add_directory
 
 - sound_add_included
+
+- sound_add_included_ext
 
 
 - sound_exists
@@ -118,7 +123,11 @@
 - sound_delete
 
 
-- sound_set_search_directory
+- sound_set_search_directory(dir)
+    Originally, this function was used to signal to Game Maker where to look
+    for instrument data for a specialty legacy DirectMusic format.
+    In our extension, this function is used to change the directory from which
+    the various sound_add functions will look for files using relative paths.
 
 
 -------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ lib_id=1
 action_id=603
 applies_to=self
 */
-snd=sound_add_included("included file.wav",2,1)
+snd=sound_add_included("included file.wav",2)
 
 sound_3d_set_sound_distance(snd,32,10000)
 sound_3d_set_sound_cone(snd,1,0,0,45,50,10000)

@@ -3,7 +3,7 @@
 	"folder": "gm82",
 	"version": "0.1",
 	"author": "renex",
-	"date": "23/09/2026",
+	"date": "29/09/2026",
 	"license": "Free to use, also for commercial games.",
 	"description": "A modern audio engine for Game Maker 8.2.",
 	"helpfile": "",
@@ -83,12 +83,45 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_add_ext",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_add_ext(fname,kind,name,vol,pan,pitch,persistent)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2,
+						2,
+						2,
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_add_included",
 					"extname": "",
 					"calltype": 2,
 					"helpline": "sound_add_included(name,kind)",
 					"hidden": false,
 					"argtypes": [
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "sound_add_included_ext",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_add_included_ext(fname,kind,name,vol,pan,pitch,persistent)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2,
+						2,
+						2,
 						2,
 						2
 					],
@@ -652,6 +685,21 @@
 					"returntype": 2
 				},
 				{
+					"name": "sound_set_properties",
+					"extname": "",
+					"calltype": 2,
+					"helpline": "sound_set_properties(index,vol,pitch,pan,persistent)",
+					"hidden": false,
+					"argtypes": [
+						2,
+						2,
+						2,
+						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
 					"name": "sound_set_search_directory",
 					"extname": "",
 					"calltype": 2,
@@ -733,38 +781,8 @@
 			],
 			"constants": [
 				{
-					"name": "unit_seconds",
-					"value": "0",
-					"hidden": false
-				},
-				{
-					"name": "unit_samples",
-					"value": "1",
-					"hidden": false
-				},
-				{
-					"name": "unit_unitary",
+					"name": "dsound_reuse_sound_ids",
 					"value": "2",
-					"hidden": false
-				},
-				{
-					"name": "kind_soundfx",
-					"value": "0",
-					"hidden": false
-				},
-				{
-					"name": "kind_background",
-					"value": "1",
-					"hidden": false
-				},
-				{
-					"name": "kind_3dsound",
-					"value": "2",
-					"hidden": false
-				},
-				{
-					"name": "kind_streamed",
-					"value": "3",
 					"hidden": false
 				},
 				{
@@ -778,7 +796,57 @@
 					"hidden": false
 				},
 				{
-					"name": "dsound_reuse_sound_ids",
+					"name": "kind_3dsound",
+					"value": "2",
+					"hidden": false
+				},
+				{
+					"name": "kind_background",
+					"value": "1",
+					"hidden": false
+				},
+				{
+					"name": "kind_extra1",
+					"value": "4",
+					"hidden": false
+				},
+				{
+					"name": "kind_extra2",
+					"value": "5",
+					"hidden": false
+				},
+				{
+					"name": "kind_extra3",
+					"value": "6",
+					"hidden": false
+				},
+				{
+					"name": "kind_extra4",
+					"value": "7",
+					"hidden": false
+				},
+				{
+					"name": "kind_soundfx",
+					"value": "0",
+					"hidden": false
+				},
+				{
+					"name": "kind_streamed",
+					"value": "3",
+					"hidden": false
+				},
+				{
+					"name": "unit_samples",
+					"value": "1",
+					"hidden": false
+				},
+				{
+					"name": "unit_seconds",
+					"value": "0",
+					"hidden": false
+				},
+				{
+					"name": "unit_unitary",
 					"value": "2",
 					"hidden": false
 				}
@@ -937,6 +1005,17 @@
 					"hidden": false,
 					"argtypes": [
 						2,
+						2
+					],
+					"returntype": 2
+				},
+				{
+					"name": "__dsound_stop",
+					"extname": "",
+					"calltype": 12,
+					"helpline": "",
+					"hidden": false,
+					"argtypes": [
 						2
 					],
 					"returntype": 2
