@@ -2,4 +2,4 @@
 
 A modern audio engine for Game Maker 8.2.
 
-Requires Core and Buffer.
+Written by renex. Requires Core and Buffer.

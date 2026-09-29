@@ -3,62 +3,14 @@
 
     Game Maker 8.2 DirectSound
     ==========================
-    v0.1
-    4 Sep 2026
+    v0.1.0
+    3 Sep 2026
   
   
   A modern audio engine for Game Maker 8.2.
+  
+  Written by renex. Requires Core and Buffer.
 
-*/
-//---------------------------------------------------------------------------//
-/*
-
-  Changelog
-  ---------
-  
-- 
-
-*/
-//---------------------------------------------------------------------------//  
-/*
-
-  Todo
-  ----
-  
-    - ogg parser
-    - mp3 parser
-    - tracker parser
-    - buffer add raw
-    - pausing
-    - SET_LIN_VOLUME setting
-    - instance editing
-    - position getting and setting
-    - instance -> SecondaryBuffer property transfer in frame update
-    - instance 3d sound computation in frame update
-    - instance loop point and fading upkeep in timer routine
-
-
-  Notes
-  -----
-  
-  instance values for vol pan pitch are multiplied with the sound resource's values.
-  this means that a sound that has a volume of 0.5, when played at half volume, will create
-  an instance with 0.25 volume.
-  
-  https://github.com/libxmp/libxmp
-  
-  HRESULT hr;
-  DWORD dwResults;
-  LPDIRECTSOUNDBUFFER8 secbuffer8 = (LPDIRECTSOUNDBUFFER8)secbuffer;       
-  DSEFFECTDESC dsEffect;
-  memset(&dsEffect, 0, sizeof(DSEFFECTDESC));
-  dsEffect.dwSize = sizeof(DSEFFECTDESC);
-  dsEffect.dwFlags = 0;
-  dsEffect.guidDSFXClass = GUID_DSFX_STANDARD_ECHO;
-  vibe_check(secbuffer8->SetFX(1, &dsEffect, &dwResults));
-  vibe_check(secbuffer8->Play(0, 0, 0));
-  
-  
 */
 //---------------------------------------------------------------------------//
 //header
