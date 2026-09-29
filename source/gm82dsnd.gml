@@ -16,17 +16,23 @@
   Todo
   ----
   
-    - sound_add_raw
-    - sound_add_buffer
-    - sound_add_buffer_raw
-    - sound_add_directory
+  - vanilla api
     - sound_fade
     - sound_stop_all
     - sound_delete
     - sound_discard
     - sound_replace
     - sound_restore
+    - sound_background_tempo
+    - sound_effect_*
+    - sound_3d_*
+  
+  - extended api
     - sound_get_instance_count
+    - sound_add_raw
+    - sound_add_buffer
+    - sound_add_buffer_raw
+    - sound_add_directory
     - sound_get_instance_list
     - sound_get_frequency
     - sound_get_length
@@ -38,7 +44,8 @@
     - sound_background_layer
     - sound_kind_instance_list
     - sound_kind_...
-  
+
+
 */
 //---------------------------------------------------------------------------//
 //internals
@@ -52,10 +59,10 @@
     
     globalvar __dsound_error,__dsound_map,__dsound_rev_map,__dsound_prs_map,__dsound_search_dir;
     
-    __dsound_error[1]="Generic DirectSound error."
-    __dsound_error[2]="Non-existing index."
-    __dsound_error[3]="Failure loading sound."
-    __dsound_error[4]="No more space to add sounds. You may have a memory leak."
+    __dsound_error[1]="Generic DirectSound error. Please tell renex about this error."
+    __dsound_error[2]="Non-existing sound or instance index."
+    __dsound_error[3]="Failure loading sound data from file or buffer."
+    __dsound_error[4]="No more space to add sounds (100000 sounds). Check if you have a memory leak, otherwise if this is intentionally happening due to external asset loading, please enable dsound_reuse_sound_ids using sound_settings."
     
     __dsound_map=ds_map_create()
     __dsound_rev_map=ds_map_create()
@@ -88,7 +95,7 @@
 
 
 //---------------------------------------------------------------------------//
-//sound shims
+//shims
 
 
 #define sound_add

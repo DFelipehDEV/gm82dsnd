@@ -781,6 +781,11 @@
 			],
 			"constants": [
 				{
+					"name": "dsound_respect_persistence",
+					"value": "3",
+					"hidden": false
+				},
+				{
 					"name": "dsound_reuse_sound_ids",
 					"value": "2",
 					"hidden": false
@@ -826,7 +831,7 @@
 					"hidden": false
 				},
 				{
-					"name": "kind_soundfx",
+					"name": "kind_sounds",
 					"value": "0",
 					"hidden": false
 				},

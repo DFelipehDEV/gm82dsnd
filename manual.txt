@@ -41,15 +41,16 @@
   Settings
   --------
 
-    Some of the things Game Maker's audio engine does are a little odd.
-    This extension changes some of those behaviors, but if your project has
-    existing code that relies on the vanilla quirks, you can disable these
-    settings to restore that kind of behavior.
 
+- sound_global_volume
+    Changes the global volume value that modifies all playing sounds.
+    By default, it's set to 0.7, for a more comfortable listening experience.
 
 - sound_settings(setting,value)
-    Changes extension configuration. All settings are on by default.
-    Turning all settings off emulates vanilla Game Maker behavior.
+    The builtin audio engine in Game Maker is full of strange quirks. This
+    extension changes some of those to more sensible defaults. However, if
+    your project has existing code that relies on the vanilla quirks, you can
+    disable one or more of these settings to emulate the old behavior.
     
   - dsound_use_linear_volume
       Game Maker's volume scale is a logarithmic attenuation value, from 30
@@ -62,23 +63,30 @@
 
   - dsound_use_scheduler
       Game maker sound functions act immediately upon call. Sometimes this is
-      undesirable, such as when you want to play a sound and then immediately
-      change the settings for it somewhere else within the same frame - if your
-      game is laggy, you could hear a spike as the sound plays at full volume
-      for a very short period of time.
-      In order to mitigate this, our extension uses a system where newly played
-      sounds and changes to sound instances are only executed once per step,
-      in a way where sound operations are more consistent and predictable.
+      undesirable, such as when you want to play a sound and then change the
+      volume - if your game is even a little laggy, you could hear a spike as
+      the sound plays at full volume for a short time. In order to mitigate
+      this, our extension uses a scheduler system where newly played sounds
+      and changes to sound instances happen together at the end of a step, in
+      such a way where sound operations are more consistent and predictable.
       Turning this option off will instead apply sound operations immediately.
+      You can selectively turn this off, for example, when doing a deadlock
+      loop for loading screens - and then turn it back on again afterwards.
 
   - dsound_reuse_sound_ids
-      Normally, Game Maker assigns incrementing ids to newly added sounds,
-      but this means you will eventually run out of space for sounds at
-      100000 where our extension's instance ids start.
+      Game Maker assigns incrementing ids to newly added sounds, but this
+      means you will eventually run out of space for sounds at 100000 where
+      our extension's instance ids start.
       Here we provide an option to reuse dead sound indexes for newly added
       resources. If your code is not designed to handle that, you can disable
       this option to use incrementing ids only and leave deleted sounds
-      permanently deleted. Additionally, sound resource id 0 is never used.
+      permanently deleted.
+
+  - dsound_respect_persistence
+      Game Maker allows all sounds to keep playing between room changes. Our
+      extension instead uses a system where only sounds marked as 'persistent'
+      are allowed to stay once the room changes. Disabling this option will
+      allow all sounds to keep playing between rooms again.
 
 
 -------------------------------------------------------------------------------
@@ -154,6 +162,10 @@
     As usual, this extension allows for individual instances of playing sounds
     to be controlled. All functions that play sounds return an instance id that
     can then be used in the other functions.
+    
+    Please keep in mind that a maximum of 100 instances of each sound kind can
+    exist at a time. When attempting to play more sounds, the oldest instance
+    will be destroyed.
 
 
 - sound_play
@@ -312,19 +324,21 @@
 
 - sound_get_volume
 
-- sound_global_volume
+- sound_volume
 
 - sound_pan
 
 - sound_pitch
 
-- sound_volume
 
 - sound_set_loop
 
 - sound_set_pos
 
 - sound_fade
+
+- sound_set_properties(index,vol,pitch,pan,persistent)
+    Sets all properties of a sound at once.
 
 
 -------------------------------------------------------------------------------
@@ -334,8 +348,12 @@
   
     In addition to normal operation, it is also possible to batch-operate on
     all sounds of a specific kind. For example, you may want to stop all
-    kind 0 sound effects, or change the volume of all kind 1 music tracks.
-    The kind functions allow you to perform such actions.
+    kind 0 kind_sounds, or change the volume of all kind 1 kind_background
+    music tracks. The kind functions allow you to perform such actions.
+    
+    Additionally, for the developer's organizational convenience, we also
+    provide four extra kinds, labelled kind_extra1-4. Those behave
+    identically to kind 0 (kind_sounds).
 
 
 - sound_kind_volume(kind,volume)

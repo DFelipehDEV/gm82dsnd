@@ -193,33 +193,33 @@ extern void debug_message(const wchar_t* msg, int value) {
     struct SoundResource {
         LPDIRECTSOUNDBUFFER buffer;
         int index;
-        int kind;
-        bool exists = 0;
-        bool loaded;
-        bool persistent;
-        bool preload;
-        float volume;
-        float pan;
-        float pitch;
         int loop_a;
         int loop_b;
         int inst_count;
         int frequency;
+        int kind;
+        float volume;
+        float pan;
+        float pitch;
+        bool exists = false;
+        bool loaded;
+        bool persistent;
+        bool preload;
     };
 
     struct SoundInstance {
         SoundResource* sound;
         LPDIRECTSOUNDBUFFER clone_buffer;
         int index;
+        int fade_length;
+        int fade_amount;
+        int age;
         float volume;
         float pan;
         float pitch;
         float volume_from;
         float volume_to;
-        int fade_length;
-        int fade_amount;
-        int age;
-        bool exists;
+        bool exists = false;
         bool playing;
         bool looping;        
         bool persistent;
@@ -230,7 +230,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //constants
     #define THREAD_MS 15
     #define RESOURCE_COUNT 100000
-    #define INSTANCE_COUNT 64
+    #define INSTANCE_COUNT 100
 
 
 //global variables
@@ -242,6 +242,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     bool SET_LIN_VOLUME = true;
     bool SET_SCHEDULER = true;
     bool SET_REUSE_SNDIDS = true;
+    bool SET_PERSISTENCE = true;
 
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
@@ -475,6 +476,7 @@ GMREAL __dsound_settings(double setting, double value) {
         case 0: SET_LIN_VOLUME = (value>0.5); break;
         case 1: SET_SCHEDULER = (value>0.5); break;
         case 2: SET_REUSE_SNDIDS = (value>0.5); break;
+        case 3: SET_PERSISTENCE = (value>0.5); break;
     }    
     return 0;
 }
@@ -966,12 +968,14 @@ void dsound_sound_stop(int index) {
 void dsound_stop_nonp() {
     //stops all instances that are not persistent - called in room end
     
-    SoundInstance* inst;
-    
-    REPEAT(i, INSTANCE_COUNT) REPEAT(kind,4) {
-        inst = &sound_instances[kind][i];
-        if (inst->exists && !inst->persistent) {
-            dsound_inst_free(inst);
+    if (SET_PERSISTENCE) {
+        SoundInstance* inst;
+        
+        REPEAT(i, INSTANCE_COUNT) REPEAT(kind,4) {
+            inst = &sound_instances[kind][i];
+            if (inst->exists && !inst->persistent) {
+                dsound_inst_free(inst);
+            }
         }
     }
 }
