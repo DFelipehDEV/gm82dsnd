@@ -510,8 +510,8 @@
     memory at game start. While most games don't have that much music in them,
     if this proves to be a problem, we plan to look into only loading sounds
     when they are first referenced, which would incur a small penalty on play,
-    but also allowing proper usage of the preload flag, sound_discard and
-    sound_restore. Maybe this could also come as a config option, too.
+    but would also allow for proper usage of the preload flag, sound_discard
+    and sound_restore. Maybe this could also come as a config option.
 
 
   We'll see how it goes.

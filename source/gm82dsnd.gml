@@ -213,8 +213,11 @@
     __dsound_error_effects()
 
 #define sound_3d_set_sound_cone
+
 #define sound_3d_set_sound_distance
+
 #define sound_3d_set_sound_position
+
 #define sound_3d_set_sound_velocity
 
 
@@ -249,7 +252,7 @@
     
     __snd=sound_add(argument0,argument1,1)
     
-    sound_set_properties(__snd,argument2,argument3,argument4,argument5,argument6)
+    sound_set_properties(__snd,argument3,argument4,argument5,argument6)
     
     return __snd
     
@@ -297,7 +300,7 @@
     
     __snd=sound_add(__fname,argument1,1)
     
-    sound_set_properties(__snd,argument2,argument3,argument4,argument5,argument6)
+    sound_set_properties(__snd,argument3,argument4,argument5,argument6)
     
     return __snd
 
@@ -305,7 +308,7 @@
 #define sound_add_directory
 
 #define sound_set_properties
-    ///sound_set_properties(index,vol,pitch,pan,persistent)
+    ///sound_set_properties(index,vol,pan,pitch,persistent)
     //Sets all properties of a sound at once.
     
     if (!sound_exists(argument0)) {
@@ -400,8 +403,11 @@
 
 
 #define sound_get_frequency
+
 #define sound_get_instance_count
+
 #define sound_get_instance_list
+
 #define sound_get_length
 
 #define sound_get_volume
@@ -444,6 +450,7 @@
 
 
 #define sound_pause_all
+
 #define sound_resume_all
 //
 //

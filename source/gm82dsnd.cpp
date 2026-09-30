@@ -13,7 +13,7 @@
 
 */
 //---------------------------------------------------------------------------//
-//header
+#pragma region header
 
 
 #include <stdio.h>
@@ -51,10 +51,9 @@
 #define runner_function(type, name, addr, ...)\
     type (*name)(__VA_ARGS__) = (type(*)(__VA_ARGS__))addr;
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//debug helpers 🖐
-
+#pragma region debug helpers
 
 extern bool __vibe_check(const wchar_t* file, int line, HRESULT hr) {
     if (SUCCEEDED(hr)) return false;
@@ -83,9 +82,9 @@ extern void debug_message(const wchar_t* msg, int value) {
     MessageBoxW(0, buf, L"Debug message", 0);
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//types and globals
+#pragma region types and globals
 
 
 //directsound
@@ -200,9 +199,9 @@ extern void debug_message(const wchar_t* msg, int value) {
     SoundResource sound_resources[RESOURCE_COUNT];
     SoundInstance sound_instances[4][INSTANCE_COUNT];
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//function prototypes
+#pragma region function prototypes
 
 //internals
     void dsound_hook();
@@ -234,9 +233,9 @@ extern void debug_message(const wchar_t* msg, int value) {
     void dsound_set_volume(double);
     void dsound_set_pause(int, bool);
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//system boilerplate
+#pragma region system boilerplate
 
 
 bool WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
@@ -281,9 +280,9 @@ WAVEFORMATEX* describe_format(int samplerate, int channels, int bits) {
     return &FormatDescriptor;
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//Game Maker interface
+#pragma region Game Maker interface
 
 
 GMREAL __dsound_init() {
@@ -434,9 +433,9 @@ GMREAL __dsound_settings(double setting, double value) {
     return 0;
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//internals
+#pragma region internals
 
 
 void dsound_hook() {
@@ -630,9 +629,9 @@ LONG dsound_pan_formula(double pan) {
     else return (LONG)(3333.3 * log10(max(0.001,min(1.0,1.0+pan))));
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//adding sounds
+#pragma region adding sounds
 
 
 void dsound_load_builtin(int index) {
@@ -811,9 +810,9 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
     return id;
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//instance control
+#pragma region instance control
 
 
 int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
@@ -938,9 +937,9 @@ void dsound_stop_nonp() {
     }
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
-//setters getters
+#pragma region setters getters
 
 
 void dsound_set_volume(double vol) {
@@ -951,5 +950,5 @@ void dsound_set_pause(int index, bool paused) {
     //etc
 }
 
-
+#pragma endregion
 //---------------------------------------------------------------------------//
