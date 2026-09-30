@@ -114,7 +114,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //runner hacking
     struct TMemoryStream {
         uint32_t vfp;
-        char* memory;
+        unsigned char* memory;
         uint32_t size;
         uint32_t position;
         uint32_t capacity;
@@ -218,8 +218,8 @@ extern void debug_message(const wchar_t* msg, int value) {
 //adding sounds
     void dsound_load_builtin(int);
     int dsound_add_file(char*, int);
-    int dsound_add_mem(char*, int, int);
-    int dsound_add_mem_index(int, char*, int, int);
+    int dsound_add_mem(unsigned char*, int, int);
+    int dsound_add_mem_index(int, unsigned char*, int, int);
 
 //instance control
     int dsound_play(int, bool, double, double, double);
@@ -300,7 +300,7 @@ GMREAL __dsound_add_file(char* fname, double kind) {
 }
 
 GMREAL __dsound_add_mem(double buffer, double length, double kind) {
-    return (double)dsound_add_mem((char*)(int)buffer, (int)length, (int) kind);
+    return (double)dsound_add_mem((unsigned char*)(int)buffer, (int)length, (int) kind);
 }
 
 GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
@@ -657,7 +657,7 @@ void dsound_load_builtin(int index) {
         fseek(file, 0, SEEK_END);
         int size = ftell(file);
         fseek(file, 0, SEEK_SET);        
-        char* buffer = (char*)malloc(size);
+        unsigned char* buffer = (unsigned char*)malloc(size);
         fread(buffer, size, 1, file);
         fclose(file);
         
@@ -695,7 +695,7 @@ int dsound_add_file(char* fname, int kind) {
     fseek(file, 0, SEEK_END);
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);        
-    char* buffer = (char*)malloc(size);
+    unsigned char* buffer = (unsigned char*)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
     
@@ -706,7 +706,7 @@ int dsound_add_file(char* fname, int kind) {
     return id;
 }
 
-int dsound_add_mem(char* buffer, int length, int kind) {
+int dsound_add_mem(unsigned char* buffer, int length, int kind) {
     int id = dsound_get_free_resource();
     
     //there is no space!
@@ -724,16 +724,20 @@ int dsound_add_mem(char* buffer, int length, int kind) {
     return id;
 }
 
-int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
+int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
     //adds a new sound resource from a buffer
     
     LPDIRECTSOUNDBUFFER secbuffer;
     int samplerate, channels, bits;
     uint32_t data_length;
-    char* data;
+    unsigned char* data;
+    
+    //debug_message(L"loading sound %i",id);
     
     //find file type from magic number
+    int mode;
     if (memcmp("RIF",buffer,3)==0) {
+        mode = 0;
         //read wav properties
             RiffWaveFmt* format = (RiffWaveFmt*)buffer;
         
@@ -742,7 +746,7 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
             bits = format->BitsPerSample;
         
         //navigate wav blocks until we get to the data block
-            data = (char*)(buffer + 16);
+            data = (unsigned char*)(buffer + 16);
             data_length = format->FormatLength;
             do {        
                 data += data_length + 8;
@@ -750,11 +754,23 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
             } while (memcmp("data", data - 4, 4) != 0 && data-buffer < length - 16);
             data += 4;            
     } else if (memcmp("Ogg",buffer,3)==0) {
+        mode = 1;
         //read ogg
         return ERROR_FAIL_LOAD;
-    } else if (memcmp("ID3",buffer,3)==0) {
+    } else if (memcmp("ID3",buffer,3)==0 || (buffer[0] == 0xff && buffer[1] == 0xfb)) {
+        mode = 2;
         //read mp3
-        return ERROR_FAIL_LOAD;
+        mp3dec_t mp3d;
+        mp3dec_file_info_t info;
+        if (mp3dec_load_buf(&mp3d, (const uint8_t*)buffer, length, &info, NULL, NULL)) {
+            return ERROR_FAIL_LOAD;
+        }    
+        
+        data = (unsigned char*)info.buffer;
+        data_length = info.samples * info.channels;
+        samplerate = info.hz;
+        channels = info.channels;
+        bits = 16;        
     } else {
         //unrecognized file type
         return ERROR_FAIL_LOAD;
@@ -806,6 +822,11 @@ int dsound_add_mem_index(int id, char* buffer, int length, int kind) {
         sound->loop_a = 0;
         sound->loop_b = 0;
         sound->inst_count = 0;
+    
+    //cleanup
+        if (mode == 1 || mode == 2) {
+            free(data);
+        }
     
     return id;
 }
