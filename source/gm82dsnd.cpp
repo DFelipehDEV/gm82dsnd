@@ -707,6 +707,8 @@ int dsound_add_file(char* fname, int kind) {
 }
 
 int dsound_add_mem(unsigned char* buffer, int length, int kind) {
+    //adds a new sound resource from a buffer
+    
     int id = dsound_get_free_resource();
     
     //there is no space!
@@ -725,25 +727,26 @@ int dsound_add_mem(unsigned char* buffer, int length, int kind) {
 }
 
 int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
-    //adds a new sound resource from a buffer
+    //adds a new sound resource from a buffer, in a specific index slot
     
     LPDIRECTSOUNDBUFFER secbuffer;
     int samplerate, channels, bits;
     uint32_t data_length;
     unsigned char* data;
+    int mode;
     
     //debug_message(L"loading sound %i",id);
     
     //find file type from magic number
-    int mode;
     if (memcmp("RIF",buffer,3)==0) {
+        //read wav
         mode = 0;
-        //read wav properties
-            RiffWaveFmt* format = (RiffWaveFmt*)buffer;
         
-            samplerate = format->SampleRate;
-            channels = format->Channels;
-            bits = format->BitsPerSample;
+        RiffWaveFmt* format = (RiffWaveFmt*)buffer;
+    
+        samplerate = format->SampleRate;
+        channels = format->Channels;
+        bits = format->BitsPerSample;
         
         //navigate wav blocks until we get to the data block
             data = (unsigned char*)(buffer + 16);
@@ -754,12 +757,21 @@ int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
             } while (memcmp("data", data - 4, 4) != 0 && data-buffer < length - 16);
             data += 4;            
     } else if (memcmp("Ogg",buffer,3)==0) {
-        mode = 1;
         //read ogg
-        return ERROR_FAIL_LOAD;
+        mode = 1;
+
+        int16_t* ogg_data = NULL;
+        data_length = stb_vorbis_decode_memory((const unsigned char*)buffer, length, &channels, &samplerate, &ogg_data);
+        if (data_length <= 0) {
+            return ERROR_FAIL_LOAD;
+        }
+        data = (unsigned char*)ogg_data;
+        data_length *= channels * 2; //16 bit, but the buffer is char*
+        bits = 16;
     } else if (memcmp("ID3",buffer,3)==0 || (buffer[0] == 0xff && buffer[1] == 0xfb)) {
-        mode = 2;
         //read mp3
+        mode = 2;
+        
         mp3dec_t mp3d;
         mp3dec_file_info_t info;
         if (mp3dec_load_buf(&mp3d, (const uint8_t*)buffer, length, &info, NULL, NULL)) {
@@ -767,7 +779,7 @@ int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
         }    
         
         data = (unsigned char*)info.buffer;
-        data_length = info.samples * info.channels;
+        data_length = info.samples * 2; //16 bit, but the buffer is char*
         samplerate = info.hz;
         channels = info.channels;
         bits = 16;        
