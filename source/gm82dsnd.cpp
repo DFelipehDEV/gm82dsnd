@@ -21,6 +21,8 @@
 #include <cmath>
 #include <windows.h>
 #include <dsound.h>
+#include <initguid.h>
+#include <Mmdeviceapi.h>
 
 #include "../include/stb_vorbis.c"
 //bruh
@@ -34,6 +36,7 @@
 #define MINIMP3_NO_STDIO
 #include "../include/minimp3_ex.h"
 
+#define LIBXMP_STATIC
 #include "../include/xmp.h"
 
 #pragma comment(lib,"dsound.lib")
@@ -181,6 +184,10 @@ extern void debug_message(const wchar_t* msg, int value) {
     };
 
 
+//Libxmp
+    xmp_context XMP_CONTEXT;
+
+
 //constants
     #define THREAD_MS 15
     #define RESOURCE_COUNT 100000
@@ -188,19 +195,23 @@ extern void debug_message(const wchar_t* msg, int value) {
 
 
 //global variables
+    SoundResource sound_resources[RESOURCE_COUNT];
+    SoundInstance sound_instances[4][INSTANCE_COUNT];
+    
     double VOLUME = 0.7;
+    
     int LAST_INST_ID = RESOURCE_COUNT;
     int LAST_SND_ID;
     int BGM_INST_ID = -4;
     int MM_INST_ID = -4;
     int BUILTIN_COUNT = 0;
+    int SYSTEM_SAMPLE_RATE = 48000;
+    
     bool SET_LIN_VOLUME = true;
     bool SET_SCHEDULER = true;
     bool SET_REUSE_SNDIDS = true;
     bool SET_PERSISTENCE = true;
 
-    SoundResource sound_resources[RESOURCE_COUNT];
-    SoundInstance sound_instances[4][INSTANCE_COUNT];
 
 #pragma endregion
 //---------------------------------------------------------------------------//
@@ -281,6 +292,42 @@ WAVEFORMATEX* describe_format(int samplerate, int channels, int bits) {
         FormatDescriptor.nSamplesPerSec * FormatDescriptor.nBlockAlign;
     FormatDescriptor.cbSize = 0;
     return &FormatDescriptor;
+}
+
+int system_get_primary_samplerate() {
+    //returns the sample rate of the default audio device,
+    //or a reasonable default if not possible
+    
+    HRESULT hr;
+    IMMDevice * pDevice = NULL;
+    IMMDeviceEnumerator * pEnumerator = NULL;
+    IPropertyStore* store = nullptr;
+    PWAVEFORMATEX deviceFormatProperties;
+    PROPVARIANT prop;
+
+    CoInitialize(NULL);
+
+    hr = CoCreateInstance(
+        __uuidof(MMDeviceEnumerator), NULL,
+        CLSCTX_ALL,
+        __uuidof(IMMDeviceEnumerator), (LPVOID *)&pEnumerator
+    );
+
+    hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &pDevice);
+
+    hr = pDevice->OpenPropertyStore(STGM_READ, &store);
+    if (FAILED(hr)) {
+        return 48000;
+    }
+
+    hr = store->GetValue(PKEY_AudioEngine_DeviceFormat, &prop);
+    if (FAILED(hr)) {
+        return 48000;
+    }
+
+    deviceFormatProperties = (PWAVEFORMATEX)prop.blob.pBlobData;
+
+    return deviceFormatProperties->nSamplesPerSec;
 }
 
 #pragma endregion
@@ -459,15 +506,18 @@ void dsound_hook() {
 void dsound_init() {
     //initializes all systems
     
-    
     //directsound
+        SYSTEM_SAMPLE_RATE = system_get_primary_samplerate();
+        
+        //debug_message(L"system sample %i",SYSTEM_SAMPLE_RATE);
+        
         vibe_check(DirectSoundCreate8(NULL, &Device, NULL));
         
         //you're supposed to use your application's window here but the
         //desktop window works and i haven't been able to find any problems.
         //using the desktop prevents the extension from having to wait for
         //the runner to create a window, which allows full extension usage
-        //during the first room's create events.
+        //without compromises during the earliest GML events.
         vibe_check(Device->SetCooperativeLevel(
             GetDesktopWindow(),
             DSSCL_PRIORITY
@@ -493,6 +543,12 @@ void dsound_init() {
             0,
             TIME_PERIODIC
         );
+    
+    
+    //initialize Libxmp
+        XMP_CONTEXT = xmp_create_context();
+        xmp_set_player(XMP_CONTEXT, XMP_PLAYER_DEFPAN, 60);
+        xmp_set_player(XMP_CONTEXT, XMP_PLAYER_INTERP, XMP_INTERP_SPLINE);
     
     
     //load builtin sounds
@@ -786,8 +842,62 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
         channels = info.channels;
         bits = 16;        
     } else {
-        //unrecognized file type
-        return ERROR_FAIL_LOAD;
+        //unrecognized file type - let's try loading it as a module!
+        mode = 3;
+        
+        struct xmp_frame_info frameinfo;
+        
+        //first we need to determine how long the module is,
+        //so we load it without instruments for quicker rendering
+        xmp_set_player(XMP_CONTEXT, XMP_PLAYER_SMPCTL, XMP_SMPCTL_SKIP);
+        
+        if (xmp_load_module_from_memory(    
+            XMP_CONTEXT, (const void*)buffer, (LONG)length
+        ) != 0) {
+            //it probably wasn't a module to begin with!
+            return ERROR_FAIL_LOAD;
+        }
+        
+        xmp_start_player(XMP_CONTEXT, SYSTEM_SAMPLE_RATE, 0);
+        
+        int total_size = 0;
+        while (xmp_play_frame(XMP_CONTEXT) == 0) {
+            xmp_get_frame_info(XMP_CONTEXT, &frameinfo);
+            total_size += frameinfo.buffer_size;
+            if (frameinfo.loop_count > 0) break; //only play one loop
+        }
+        xmp_end_player(XMP_CONTEXT);
+        xmp_release_module(XMP_CONTEXT);
+        
+        if (total_size == 0) {
+            //what?
+            return ERROR_FAIL_LOAD;
+        }
+        
+        //reload module with instruments enabled, and render it proper
+        xmp_set_player(XMP_CONTEXT, XMP_PLAYER_SMPCTL, 0);
+        xmp_load_module_from_memory(    
+            XMP_CONTEXT, (const void*)buffer, (LONG)length
+        );
+        xmp_start_player(XMP_CONTEXT, SYSTEM_SAMPLE_RATE, 0);
+        
+        data = (uint8_t*)malloc(total_size);
+        uint8_t* position = data;
+        
+        while (xmp_play_frame(XMP_CONTEXT) == 0) {
+            xmp_get_frame_info(XMP_CONTEXT, &frameinfo);
+            if (frameinfo.loop_count > 0) break; //only play one loop
+            memcpy(position, frameinfo.buffer, frameinfo.buffer_size);
+            position += frameinfo.buffer_size;
+        }
+        
+        xmp_end_player(XMP_CONTEXT);
+        xmp_release_module(XMP_CONTEXT);
+        
+        data_length = total_size;
+        samplerate = SYSTEM_SAMPLE_RATE;
+        channels = 2;
+        bits = 16;        
     }
     
     //debug_message(L"sample rate %i",samplerate);
@@ -838,7 +948,7 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
         sound->inst_count = 0;
     
     //cleanup
-        if (mode == 1 || mode == 2) {
+        if (mode == 1 || mode == 2 || mode == 3) {
             free(data);
         }
     

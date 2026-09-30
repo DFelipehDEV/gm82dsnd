@@ -47,6 +47,23 @@
   configurable extension behavior, and other goodies from Sound and Audio such
   as .wasd sound packs, adding sounds from included files, referring to sounds
   as either strings or indexes, music layering and fading, and much more.
+  
+  The following file formats are available for loading sounds:
+  
+    - WAV
+        -> 8-bit and 16-bit PCM formats are supported.
+        -> 24-bit and compressed WaveFmtExt codecs are not supported.
+    
+    - Ogg
+        -> Vorbis game audio codec is supported.
+        -> the Opus voice codec is not supported.
+    
+    - MP3
+        -> vbr and cbr codecs up to 320kbps are supported.
+        -> the newer v0 codec is not supported.
+    
+    - Tracker formats
+        -> MOD, IT, XM, and S3M files are supported.
 
 
 -------------------------------------------------------------------------------
@@ -123,11 +140,9 @@
 
 
 - sound_add(fname, kind, preload)
-    Adds a sound from file. Supported formats are 8 and 16-bit WAV, (PLANNED:
-    Ogg Vorbis, VBR mp3, and various tracker formats.)
-    Kind is one of the kind_ constants. More information on kinds is available
-    in the sections below. Note that the preload option is only provided for
-    compatibility and is currently ignored.
+    Adds a sound from a file. Kind is one of the kind_ constants. More
+    information on kinds is available in the sections below. Note that the
+    preload option is only provided for compatibility and is currently ignored.
 
 
 - sound_add_ext(fname,kind,name,vol,pan,pitch,persistent)
@@ -514,6 +529,12 @@
     and sound_restore. Maybe this could also come as a config option.
 
 
+  On Midi Support
+  
+    No promises, but we will look into it probably at the same time that we
+    look into effects since they use the same fundamental backend.
+
+
   We'll see how it goes.
 
 
@@ -552,7 +573,6 @@
     - sound_kind_instance_list
     - sound_kind_...
     
-  - tracker parser https://github.com/libxmp/libxmp
   - buffer add raw
   - pausing
   - SET_LIN_VOLUME setting
@@ -562,6 +582,7 @@
   - instance 3d sound computation in frame update
   - instance loop point and fading upkeep in timer routine (look into the event timer thing)
   - implement master * kind * sound * inst vol/pan/pitch formula
+  - it looks like the background music instance control is crashing the runner
 
 
 -------------------------------------------------------------------------------
