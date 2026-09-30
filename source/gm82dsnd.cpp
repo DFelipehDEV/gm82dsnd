@@ -22,21 +22,24 @@
 #include <windows.h>
 #include <dsound.h>
 
-#include "stb_vorbis.c"
+#include "../include/stb_vorbis.c"
 //bruh
 #undef L
 #undef R
 #undef C
 
 #define MINIMP3_IMPLEMENTATION
-#include "minimp3.h"
+#include "../include/minimp3.h"
 
 #define MINIMP3_NO_STDIO
-#include "minimp3_ex.h"
+#include "../include/minimp3_ex.h"
+
+#include "../include/xmp.h"
 
 #pragma comment(lib,"dsound.lib")
 #pragma comment(lib,"Dxguid.lib")
 #pragma comment(lib,"Winmm.lib")
+#pragma comment(lib,"../include/libxmp-lite-static.lib")
 
 #define GMREAL extern "C" __declspec(dllexport) double __cdecl
 #define GMSTR extern "C" __declspec(dllexport) char* __cdecl
