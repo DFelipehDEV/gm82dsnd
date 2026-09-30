@@ -552,9 +552,7 @@
     - sound_kind_instance_list
     - sound_kind_...
     
-  - ogg parser
-  - mp3 parser
-  - tracker parser
+  - tracker parser https://github.com/libxmp/libxmp
   - buffer add raw
   - pausing
   - SET_LIN_VOLUME setting
@@ -572,8 +570,6 @@
   -----------
 
 
-  https://github.com/libxmp/libxmp
-  
   HRESULT hr;
   DWORD dwResults;
   LPDIRECTSOUNDBUFFER8 secbuffer8 = (LPDIRECTSOUNDBUFFER8)secbuffer;       

@@ -114,7 +114,7 @@ extern void debug_message(const wchar_t* msg, int value) {
 //runner hacking
     struct TMemoryStream {
         uint32_t vfp;
-        unsigned char* memory;
+        uint8_t* memory;
         uint32_t size;
         uint32_t position;
         uint32_t capacity;
@@ -218,8 +218,8 @@ extern void debug_message(const wchar_t* msg, int value) {
 //adding sounds
     void dsound_load_builtin(int);
     int dsound_add_file(char*, int);
-    int dsound_add_mem(unsigned char*, int, int);
-    int dsound_add_mem_index(int, unsigned char*, int, int);
+    int dsound_add_mem(uint8_t*, int, int);
+    int dsound_add_mem_index(int, uint8_t*, int, int);
 
 //instance control
     int dsound_play(int, bool, double, double, double);
@@ -300,7 +300,7 @@ GMREAL __dsound_add_file(char* fname, double kind) {
 }
 
 GMREAL __dsound_add_mem(double buffer, double length, double kind) {
-    return (double)dsound_add_mem((unsigned char*)(int)buffer, (int)length, (int) kind);
+    return (double)dsound_add_mem((uint8_t*)(int)buffer, (int)length, (int) kind);
 }
 
 GMREAL __dsound_play(double index, double loop, double vol, double pan, double pitch) {
@@ -657,7 +657,7 @@ void dsound_load_builtin(int index) {
         fseek(file, 0, SEEK_END);
         int size = ftell(file);
         fseek(file, 0, SEEK_SET);        
-        unsigned char* buffer = (unsigned char*)malloc(size);
+        uint8_t* buffer = (uint8_t*)malloc(size);
         fread(buffer, size, 1, file);
         fclose(file);
         
@@ -695,7 +695,7 @@ int dsound_add_file(char* fname, int kind) {
     fseek(file, 0, SEEK_END);
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);        
-    unsigned char* buffer = (unsigned char*)malloc(size);
+    uint8_t* buffer = (uint8_t*)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
     
@@ -706,7 +706,7 @@ int dsound_add_file(char* fname, int kind) {
     return id;
 }
 
-int dsound_add_mem(unsigned char* buffer, int length, int kind) {
+int dsound_add_mem(uint8_t* buffer, int length, int kind) {
     //adds a new sound resource from a buffer
     
     int id = dsound_get_free_resource();
@@ -726,13 +726,13 @@ int dsound_add_mem(unsigned char* buffer, int length, int kind) {
     return id;
 }
 
-int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
+int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
     //adds a new sound resource from a buffer, in a specific index slot
     
     LPDIRECTSOUNDBUFFER secbuffer;
     int samplerate, channels, bits;
     uint32_t data_length;
-    unsigned char* data;
+    uint8_t* data;
     int mode;
     
     //debug_message(L"loading sound %i",id);
@@ -749,7 +749,7 @@ int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
         bits = format->BitsPerSample;
         
         //navigate wav blocks until we get to the data block
-            data = (unsigned char*)(buffer + 16);
+            data = (uint8_t*)(buffer + 16);
             data_length = format->FormatLength;
             do {        
                 data += data_length + 8;
@@ -761,11 +761,11 @@ int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
         mode = 1;
 
         int16_t* ogg_data = NULL;
-        data_length = stb_vorbis_decode_memory((const unsigned char*)buffer, length, &channels, &samplerate, &ogg_data);
+        data_length = stb_vorbis_decode_memory((const uint8_t*)buffer, length, &channels, &samplerate, &ogg_data);
         if (data_length <= 0) {
             return ERROR_FAIL_LOAD;
         }
-        data = (unsigned char*)ogg_data;
+        data = (uint8_t*)ogg_data;
         data_length *= channels * 2; //16 bit, but the buffer is char*
         bits = 16;
     } else if (memcmp("ID3",buffer,3)==0 || (buffer[0] == 0xff && buffer[1] == 0xfb)) {
@@ -776,9 +776,8 @@ int dsound_add_mem_index(int id, unsigned char* buffer, int length, int kind) {
         mp3dec_file_info_t info;
         if (mp3dec_load_buf(&mp3d, (const uint8_t*)buffer, length, &info, NULL, NULL)) {
             return ERROR_FAIL_LOAD;
-        }    
-        
-        data = (unsigned char*)info.buffer;
+        }        
+        data = (uint8_t*)info.buffer;
         data_length = info.samples * 2; //16 bit, but the buffer is char*
         samplerate = info.hz;
         channels = info.channels;
