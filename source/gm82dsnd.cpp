@@ -398,8 +398,8 @@ GMREAL __dsound_setter(double index, double op, double value) {
                 case 0: inst->volume = value; break;
                 case 1: inst->pan    = value; break;
                 case 2: inst->pitch  = value; break;
-                }
-                }
+            }
+        }
         
         return 0;
     }
