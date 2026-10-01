@@ -363,15 +363,25 @@
 
 
 #define sound_loop_ext
-    ///sound_loop_ext(index,vol,pan,pitch,paused)
+    ///sound_loop_ext(index,vol,pan,pitch,paused,single)
     
-    __dsound_play(__dsound_name_parser(argument0,"sound_loop_ext"),1,argument1,argument2,argument3,argument4)
+    var __snd;
+    
+    __snd=__dsound_name_parser(argument0,"sound_loop_ext")
+    
+    if (argument5) __dsound_stop(__snd)
+    __dsound_play(__snd,1,argument1,argument2,argument3,argument4)
 
 
 #define sound_play_ext
-    ///sound_play_ext(index,vol,pan,pitch,paused)  
+    ///sound_play_ext(index,vol,pan,pitch,paused,single)
     
-    __dsound_play(__dsound_name_parser(argument0,"sound_play_ext"),0,argument1,argument2,argument3,argument4)
+    var __snd;
+    
+    __snd=__dsound_name_parser(argument0,"sound_play_ext")
+    
+    if (argument5) __dsound_stop(__snd)
+    __dsound_play(__snd,0,argument1,argument2,argument3,argument4)
 
 
 #define sound_play_single

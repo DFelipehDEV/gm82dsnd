@@ -489,9 +489,10 @@
 					"name": "sound_loop_ext",
 					"extname": "",
 					"calltype": 2,
-					"helpline": "sound_loop_ext(index,vol,pan,pitch,paused)",
+					"helpline": "sound_loop_ext(index,vol,pan,pitch,paused,single)",
 					"hidden": false,
 					"argtypes": [
+						2,
 						2,
 						2,
 						2,
@@ -560,9 +561,10 @@
 					"name": "sound_play_ext",
 					"extname": "",
 					"calltype": 2,
-					"helpline": "sound_play_ext(index,vol,pan,pitch,paused)",
+					"helpline": "sound_play_ext(index,vol,pan,pitch,paused,single)",
 					"hidden": false,
 					"argtypes": [
+						2,
 						2,
 						2,
 						2,
