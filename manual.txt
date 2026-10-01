@@ -32,9 +32,9 @@
   technology to be the definitive Game Maker 8.2 game audio solution.
   
   While not as powerful as 8.2 Sound, this extension is much smaller and
-  faster, using up only about 30 KB of exe space when compared to FmodEx's
-  vast 760 KB, with much less code running per frame and per function call,
-  leading to better game size, load times and overall performance.
+  faster, using up only about 130 KB of exe space when compared to FmodEx's
+  vast nearly 1 megabyte, with much less code running per frame and per
+  function call, leading to better game size, load times and performance.
   
   Additionally, just like how it's done in the 8.2 Audio extension, in-memory
   sound resource handling allows for builtin sound organization in the 8.2 IDE,
@@ -46,15 +46,15 @@
   of persistent sounds, the ability to rename sounds, clearer error messages,
   configurable extension behavior, and other goodies from Sound and Audio such
   as .wasd sound packs, adding sounds from included files, referring to sounds
-  as either strings or indexes, music layering and fading, and much more.
+  as either strings or indexes, music layering and fading tools, and much more.
   
-  The following file formats are available for loading sounds:
+  The following file formats are currently supported:
   
     - WAV
         -> 8-bit and 16-bit PCM formats are supported.
-        -> 24-bit and compressed WaveFmtExt codecs are not supported.
+        -> 24-bit and compressed WaveExt codecs are not supported.
     
-    - Ogg
+    - OGG
         -> Vorbis game audio codec is supported.
         -> the Opus voice codec is not supported.
     
@@ -82,10 +82,12 @@
 
 - sound_settings(setting,value)
     The builtin audio engine in Game Maker is full of strange quirks.
-    This extension has been designed to have more sensical behavior well suited
+    This extension has been designed to have a more standard behavior suited
     to a modern development environment. However, if your project has legacy
     code that relies on the vanilla quirks, you can disable one or more of
-    these options to emulate the old Game Maker behavior.
+    these options to emulate the old Game Maker 8 behavior.
+    
+    By default, all of these options are enabled.
     
   - dsound_use_linear_volume
       Game Maker's volume scale is a logarithmic attenuation value, from 30
@@ -108,7 +110,7 @@
       at the end of a step, in a more consistent and predictable way.
       Turning this option off will instead use immediate mode, where operations
       on sounds apply instantly when the functions are called. You can also
-      selectively turn this off, for example, when doing a deadlock loop for
+      selectively turn this off - for example, when doing a deadlock loop for
       loading screens - and then turn it back on again afterwards.
 
   - dsound_reuse_sound_ids
@@ -116,15 +118,15 @@
       means you will eventually run out of space for sounds at 100000 where
       this extension's instance ids start.
       Here we provide an option to reuse dead sound indexes for newly added
-      resources. If your code is not designed to handle that, you can disable
-      this option to use incrementing ids only and leave deleted sounds
+      resources. If your legacy code is not designed to handle that, you can
+      disable this option to use incrementing ids only and leave deleted sounds
       permanently deleted.
 
   - dsound_respect_persistence
       Game Maker allows all sounds to keep playing between room changes. Our
-      extension instead uses a system where only sounds marked as 'persistent'
-      are allowed to continue playing once the room changes. Disabling this
-      option will allow all sounds to continue playing between rooms.
+      extension instead only allows sounds marked as 'persistent' to continue
+      playing once the room changes. Disabling this option will allow all
+      sounds to continue playing between rooms again.
 
 
 -------------------------------------------------------------------------------
@@ -136,7 +138,7 @@
     Just like in the Audio extension, it is possible to use sounds added via
     the 8.2 IDE in your games. In functions, sounds can be referred to either
     via their sound resource index, or a string name. Additionally, it is
-    possible to rename sounds for organizational purposes.
+    possible to change the name of sounds for organizational purposes.
 
 
 - sound_add(fname, kind, preload)
@@ -170,11 +172,12 @@
 - sound_delete
 
 - sound_set_search_directory(dir)
-    Originally, this function was used to signal to Game Maker where to look
-    for instrument data for a specialty legacy DirectMusic format.
+    Originally, this function was used to tell Game Maker where to look for
+    extra files required by a legacy DirectMusic file format.
     In this extension, this function is instead used to change the directory
-    from which the various sound_add functions will look for files when using
-    relative file paths.
+    where the various sound_add functions will look for files when using
+    relative file paths. Setting it to an empty string will let the system use
+    the current working_directory when searching.
 
 
 -------------------------------------------------------------------------------
@@ -183,8 +186,8 @@
   -----
 
 
-    This extension implements standard support for WASD packs (Where's All the
-    Sound Data) created by 8.2 Sound or 8.2 Audio.
+    This extension implements standard support for WASD sound packs created by
+    either other 8.2 sound extension, with the newer API as seen in 8.2 Audio.
 
 
 - sound_pack_create
@@ -205,8 +208,8 @@
     then be used in the other functions.
     
     Please keep in mind that a maximum of 100 instances of each sound kind can
-    exist at a time. When attempting to play more sounds, the oldest instance
-    will be destroyed.
+    be playing at a time. When attempting to play more than 100 sounds, the
+    oldest instance of that kind will be destroyed to free up space.
 
 
 - sound_play
@@ -248,7 +251,7 @@
   ---------
 
 
-    3D sounds are currently not implemented, but planned.
+    3D sounds are currently not implemented, but are planned to be.
 
 
 - sound_3d_set_sound_cone
@@ -265,7 +268,7 @@
 
     We provide some convenience functions to make managing background music
     a little easier. Additionally, it is possible to have more than one layer
-    of background music playing at the same time, using the layer function.
+    of background music playing simultaneously, using the layer functions.
 
 
 - sound_background_instance()
@@ -278,7 +281,7 @@
 
 - sound_background_tempo(value)
     This function is not currently available due to no MIDI support, and
-    instead shims sound_kind_pitch with kind_background.
+    instead shims sound_kind_pitch for the kind_background.
 
 
 - sound_background_crossfade(index,time,volume,pan,pitch,loop)
@@ -301,7 +304,7 @@
 
     In order to solve the common problem of looping sounds remaining after
     leaving a room, we have a new sound persistence system. Only sounds that
-    have the persistent flag are allowed to keep playing between rooms.
+    have the persistent flag are allowed to continue playing between rooms.
 
   
 - sound_set_persistent(index,persistent)
@@ -321,12 +324,13 @@
     example, instances do not have a 'preload' attribute.
     
     
-    Additionally, new logic is used when deciding the properties of instances.    
-    Usually, when you change the volume or pitch value of a sound resource,
-    any changes to an instance of that sound would simply override it.
+    Additionally, a different method is used to calculate the mixing properties
+    of instances. Usually, when you change the volume or pitch value of a sound
+    resource, any changes to an instance of that sound would simply override
+    those settings.
     To mitigate this, instance properties are now combined with those of the
     sound resource of which it is an instance of, as well as the settings for
-    the 'kind' of the sound, and the master volume setting.
+    the 'kind' of the sound, and the master volume value.
     
     For example, if a sound resource has the following properties:
     
@@ -357,16 +361,17 @@
     for mastering purposes, and then have each instance of that sound behave
     in a predictable way without having to go around and change values
     everywhere in your code.
-    The overall experience is much more intuitive and convenient.
+    
+    The overall programming experience is much more intuitive and convenient.
     
     
     Functions that take a unit_ type constant accept the following values:
     
     - unit_unitary
-        A value from 0 to 1, representing the entire file from 0% to 100%.
+        A value from 0 to 1, representing the entire sound from 0% to 100%.
     
     - unit_seconds
-        A value in seconds. For example, 194.159 is 00:03:14.159.
+        A value in seconds. For example, 194.159 represents 3m 14s 159ms.
     
     - unit_samples
         A value in samples. For a 44100hz sound file, 88200 is 2 seconds in.
@@ -374,6 +379,7 @@
 
 - sound_get_frequency(index)
     Returns the frequency in hz of a sound file.
+    Most commonly, files are either 44100hz or 48000hz.
 
 
 - sound_get_kind(index)
@@ -382,7 +388,8 @@
 
 - sound_get_length(index,unit)
     Returns the length of a sound, in the specified unit.
-    Note that this function does not accept unit_unitary, as that is always 1.
+    Note that this function does not accept unit_unitary, as that would always
+    resolve to a value of 1.
 
 
 - sound_get_volume(index)
@@ -394,7 +401,7 @@
 - sound_get_pos(index)
 
 - sound_get_preload(index)
-    Returns the preload flag of the sound resource.
+    Returns the preload flag of the sound resource, as set in the IDE.
 
 
 - sound_volume(index,vol)
@@ -410,11 +417,11 @@
 - sound_set_loop(index,start,end,count,unit)
     Defines the start and end loop points for a sound or instance.
     Count defines how many times a sound loops before continuing from the end
-    point. Set count to 0 to loop infinitely.
+    point. Set count to 0 to loop indefinitely.
 
 
 - sound_set_properties(index,vol,pitch,pan,persistent)
-    Sets all properties of a sound at once.
+    Shortcut to set all properties of a sound at once.
 
 
 -------------------------------------------------------------------------------
@@ -446,9 +453,9 @@
         extension does not need to do that, so this kind is handled the same
         way as kind_background (1), with only one instance allowed at a time.
     
-    For the developer's organizational convenience, we also
-    provide four extra kinds, labelled kind_extra1 through 4. Those new kinds
-    occupy the indices 4 through 7 and behave the same way as kind_sounds (0).
+    For the developer's organizational convenience, we also provide four extra
+    kinds, labelled kind_extra1 through 4. Those new kinds occupy the indices
+    4 through 7 and behave the same way as kind_sounds (0).
 
 
 -------------------------------------------------------------------------------
@@ -460,7 +467,6 @@
     Same as the two previous sound extensions, it is possible to batch-operate
     on all sounds of a specific kind. For example, you may want to stop all
     kind_sounds, or change the volume of all kind_background music tracks.
-    The kind_ functions allow you to perform such tasks.
 
 
 - sound_kind_volume(kind,volume)
@@ -479,9 +485,7 @@
 
 - sound_kind_instance_list
     Returns a ds_list with the instance ids of all active sounds of a kind.
-    Do keep in mind that sounds may finish playing during processing when
-    using immediate mode, and also make sure to delete the ds_list after
-    you're done with it.
+    Make sure to delete the ds_list after you're done with it.
 
 
 -------------------------------------------------------------------------------
@@ -490,8 +494,7 @@
   -------------
 
 
-    Effects are currently unavailable as we research the feasibility of
-    implementing them within the new framework.
+    Effects are currently unavailable, but research on it is planned.
 
 
 - sound_effect_chorus
@@ -521,8 +524,8 @@
 
   On Preloading
 
-    Same as the Audio extension, all sounds are decoded to raw PCM wave in
-    memory at game start. While most games don't have that much music in them,
+    Same as the Audio extension, all sounds are fully decoded to raw PCM data
+    in memory when loaded. While most games don't have that much music in them,
     if this proves to be a problem, we plan to look into only loading sounds
     when they are first referenced, which would incur a small penalty on play,
     but would also allow for proper usage of the preload flag, sound_discard
@@ -531,8 +534,8 @@
 
   On Midi Support
   
-    No promises, but we will look into it probably at the same time that we
-    look into effects since they use the same fundamental backend.
+    No promises, but we will probably look into it at the same time that
+    effects are looked into since they use the same fundamental backend.
 
 
   We'll see how it goes.
@@ -573,13 +576,13 @@
     - sound_kind_instance_list
     - sound_kind_...
     
-  - buffer add raw
+  - buffer add raw and etc
   - pausing
   - SET_LIN_VOLUME setting
   - instance editing
   - position getting and setting
-  - instance -> SecondaryBuffer property transfer in frame update
-  - instance 3d sound computation in frame update
+  - instance -> SecondaryBuffer property transfer in frame update (scheduler)
+  - instance 3d sound computation in frame update (or in dsound timer)
   - instance loop point and fading upkeep in timer routine (look into the event timer thing)
   - implement master * kind * sound * inst vol/pan/pitch formula
   - it looks like the background music instance control is crashing the runner

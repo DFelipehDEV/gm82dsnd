@@ -694,17 +694,19 @@ LONG dsound_pan_formula(double pan) {
 
 
 void dsound_load_builtin(int index) {
-    //grab the gm sound struct's memory stream by traversing memory
-    //note: no checks because the parent function already checks valid index
-    GMSound* sound=(*gm_sound_mem)[index];
-    TMemoryStream* memstream=sound->memstream;
+    //loads a builtin sound resource
+    //note: no checks because the parent function already checks everything
     
-    if (memstream==NULL) {
+    //grab the gm sound struct's memory stream by traversing memory
+    GMSound* sound = (*gm_sound_mem)[index];
+    TMemoryStream* memstream = sound->memstream;
+    
+    if (memstream == NULL) {
         //if there is no memory stream in the sound struct, then that means
         //we are looking at an exported "external codec" sound file...
         
         //or an empty sound resource.
-        if (sound->fname==NULL) {
+        if (sound->fname == NULL) {
             return;
         }
         
@@ -722,7 +724,10 @@ void dsound_load_builtin(int index) {
         
         dsound_add_mem_index(index, buffer, size, sound->kind);
         
-        sound_resources[index].volume = pow(10.0,(sound->volume)*3.0-1.0)/100.0;
+        sound_resources[index].volume = pow(
+            10.0,
+            (sound->volume) * 3.0 - 1.0
+        ) / 100.0;
         sound_resources[index].pan = sound->pan;
         
         free(buffer);
@@ -741,6 +746,7 @@ void dsound_load_builtin(int index) {
         sound_resources[index].pan = sound->pan;
         
         //we should also destroy it to save memory
+        //note: if preloading is implemented, remove this
         YY_sound_free(index);
     }
 }
@@ -797,45 +803,61 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
     //debug_message(L"loading sound %i",id);
     
     //find file type from magic number
-    if (memcmp("RIF",buffer,3)==0) {
+    if (memcmp("RIF",buffer,3) == 0) {
         //read wav
         mode = 0;
         
         RiffWaveFmt* format = (RiffWaveFmt*)buffer;
+        
+        data = (uint8_t*)(buffer + 16);
+        data_length = format->FormatLength;
+        
+        //navigate wav blocks until we get to the real data block
+            do {        
+                data += data_length + 8;
+                data_length = *(uint32_t*)(data);
+            } while (
+                memcmp("data", data - 4, 4) != 0
+            &&  data-buffer < length - 16
+            );
+            data += 4;            
     
         samplerate = format->SampleRate;
         channels = format->Channels;
         bits = format->BitsPerSample;
-        
-        //navigate wav blocks until we get to the data block
-            data = (uint8_t*)(buffer + 16);
-            data_length = format->FormatLength;
-            do {        
-                data += data_length + 8;
-                data_length = *(uint32_t*)(data);
-            } while (memcmp("data", data - 4, 4) != 0 && data-buffer < length - 16);
-            data += 4;            
     } else if (memcmp("Ogg",buffer,3)==0) {
         //read ogg
         mode = 1;
 
         int16_t* ogg_data = NULL;
-        data_length = stb_vorbis_decode_memory((const uint8_t*)buffer, length, &channels, &samplerate, &ogg_data);
-        if (data_length <= 0) {
-            return ERROR_FAIL_LOAD;
-        }
+        data_length = stb_vorbis_decode_memory(
+            (const uint8_t*)buffer, length,
+            &channels, &samplerate, &ogg_data
+        );
+        
+        if (data_length <= 0) return ERROR_FAIL_LOAD;
+        
         data = (uint8_t*)ogg_data;
         data_length *= channels * 2; //16 bit, but the buffer is char*
         bits = 16;
-    } else if (memcmp("ID3",buffer,3)==0 || (buffer[0] == 0xff && buffer[1] == 0xfb)) {
+    } else if (
+        memcmp("ID3",buffer,3) == 0
+    ||  (buffer[0] == 0xff && buffer[1] == 0xfb) //check for file w/o id3 tag
+    ) {
         //read mp3
         mode = 2;
         
         mp3dec_t mp3d;
         mp3dec_file_info_t info;
-        if (mp3dec_load_buf(&mp3d, (const uint8_t*)buffer, length, &info, NULL, NULL)) {
+        if (mp3dec_load_buf(
+            &mp3d,
+            (const uint8_t*)buffer, length,
+            &info,
+            NULL, NULL
+        )) {
             return ERROR_FAIL_LOAD;
-        }        
+        }     
+        
         data = (uint8_t*)info.buffer;
         data_length = info.samples * 2; //16 bit, but the buffer is char*
         samplerate = info.hz;
@@ -852,41 +874,45 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
         xmp_set_player(XMP_CONTEXT, XMP_PLAYER_SMPCTL, XMP_SMPCTL_SKIP);
         
         if (xmp_load_module_from_memory(    
-            XMP_CONTEXT, (const void*)buffer, (LONG)length
+            XMP_CONTEXT,
+            (const void*)buffer, (LONG)length
         ) != 0) {
-            //it probably wasn't a module to begin with!
+            //it probably isn't a module...
             return ERROR_FAIL_LOAD;
         }
         
         xmp_start_player(XMP_CONTEXT, SYSTEM_SAMPLE_RATE, 0);
         
-        int total_size = 0;
+        data_length = 0;
         while (xmp_play_frame(XMP_CONTEXT) == 0) {
             xmp_get_frame_info(XMP_CONTEXT, &frameinfo);
-            total_size += frameinfo.buffer_size;
-            if (frameinfo.loop_count > 0) break; //only play one loop
+            data_length += frameinfo.buffer_size;
+            if (frameinfo.loop_count > 0) break;
         }
+        
         xmp_end_player(XMP_CONTEXT);
         xmp_release_module(XMP_CONTEXT);
         
-        if (total_size == 0) {
-            //what?
+        if (data_length == 0) {
+            //sorrgy... accedent...
             return ERROR_FAIL_LOAD;
         }
         
         //reload module with instruments enabled, and render it proper
         xmp_set_player(XMP_CONTEXT, XMP_PLAYER_SMPCTL, 0);
-        xmp_load_module_from_memory(    
-            XMP_CONTEXT, (const void*)buffer, (LONG)length
+        xmp_load_module_from_memory(
+            XMP_CONTEXT,
+            (const void*)buffer, (LONG)length
         );
         xmp_start_player(XMP_CONTEXT, SYSTEM_SAMPLE_RATE, 0);
         
-        data = (uint8_t*)malloc(total_size);
+        //allocate enough space for the final size of the module render
+        data = (uint8_t*)malloc(data_length);
         uint8_t* position = data;
         
         while (xmp_play_frame(XMP_CONTEXT) == 0) {
             xmp_get_frame_info(XMP_CONTEXT, &frameinfo);
-            if (frameinfo.loop_count > 0) break; //only play one loop
+            if (frameinfo.loop_count > 0) break;
             memcpy(position, frameinfo.buffer, frameinfo.buffer_size);
             position += frameinfo.buffer_size;
         }
@@ -894,7 +920,6 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
         xmp_end_player(XMP_CONTEXT);
         xmp_release_module(XMP_CONTEXT);
         
-        data_length = total_size;
         samplerate = SYSTEM_SAMPLE_RATE;
         channels = 2;
         bits = 16;        
@@ -947,10 +972,10 @@ int dsound_add_mem_index(int id, uint8_t* buffer, int length, int kind) {
         sound->loop_b = 0;
         sound->inst_count = 0;
     
-    //cleanup
-        if (mode == 1 || mode == 2 || mode == 3) {
-            free(data);
-        }
+    if (mode != 0) {
+        //clean up temporary buffer from compressed types
+        free(data);
+    }
     
     return id;
 }
