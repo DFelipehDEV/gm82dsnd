@@ -549,7 +549,6 @@
 
   - vanilla api
     - sound_fade
-    - sound_stop_all
     - sound_delete
     - sound_discard
     - sound_replace
@@ -585,7 +584,6 @@
   - instance 3d sound computation in frame update (or in dsound timer)
   - instance loop point and fading upkeep in timer routine (look into the event timer thing)
   - implement master * kind * sound * inst vol/pan/pitch formula
-  - it looks like the background music instance control is crashing the runner
 
 
 -------------------------------------------------------------------------------

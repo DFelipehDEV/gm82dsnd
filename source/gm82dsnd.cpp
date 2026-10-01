@@ -189,14 +189,15 @@ extern void debug_message(const wchar_t* msg, int value) {
 
 
 //constants
-    #define THREAD_MS 15
-    #define RESOURCE_COUNT 100000
-    #define INSTANCE_COUNT 100
+    #define THREAD_MS       15
+    #define RESOURCE_COUNT  100000
+    #define INSTANCE_COUNT  100
+    #define NUM_KINDS       8
 
 
 //global variables
     SoundResource sound_resources[RESOURCE_COUNT];
-    SoundInstance sound_instances[4][INSTANCE_COUNT];
+    SoundInstance sound_instances[NUM_KINDS][INSTANCE_COUNT];
     
     double VOLUME = 0.7;
     
@@ -225,7 +226,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     int dsound_get_free_resource();
     int dsound_get_free_instance();
     int dsound_sound_from_instance(int);
-    bool dsound_instance_from_iid(int, int*, int*, SoundInstance*);
+    bool dsound_instance_from_iid(int, int*, int*, SoundInstance**);
     LONG dsound_volume_formula(double);
     LONG dsound_pan_formula(double);
 
@@ -242,6 +243,7 @@ extern void debug_message(const wchar_t* msg, int value) {
     void dsound_inst_free(SoundInstance*);
     void dsound_sound_stop(int);
     void dsound_stop_nonp();
+    void dsound_stop_all();
 
 //setters getters
     void dsound_set_volume(double);
@@ -377,7 +379,7 @@ GMREAL __dsound_exists(double index) {
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
+        if (dsound_instance_from_iid(iid, &kind, &iid, &inst)) {
             return inst -> exists?1:0;
         }
         return 0;
@@ -391,7 +393,7 @@ GMREAL __dsound_setter(double index, double op, double value) {
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid((int)index, &kind, &iid, inst)) {
+        if (dsound_instance_from_iid((int)index, &kind, &iid, &inst)) {
             switch ((int)op) {
                 case 0: inst->volume = value; break;
                 case 1: inst->pan    = value; break;
@@ -419,7 +421,7 @@ GMREAL __dsound_getter(double index, double op) {
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid((int)index, &kind, &iid, inst)) {
+        if (dsound_instance_from_iid((int)index, &kind, &iid, &inst)) {
             switch ((int)op) {
                 case 0: return inst->volume;
                 case 1: return inst->pan;
@@ -459,6 +461,11 @@ GMREAL __dsound_stop_nonpersist() {
     return 0;
 }
 
+GMREAL __dsound_stop_all() {
+    dsound_stop_all();
+    return 0;
+}
+
 GMREAL __dsound_setpause(double index, double pause) {
     dsound_set_pause((int)index,pause>0.5);
     return 0;
@@ -467,7 +474,7 @@ GMREAL __dsound_setpause(double index, double pause) {
 GMREAL __dsound_getbgid() {
     int kind,index;
     SoundInstance* inst = NULL;
-    if (dsound_instance_from_iid(BGM_INST_ID, &kind, &index, inst)) {
+    if (dsound_instance_from_iid(BGM_INST_ID, &kind, &index, &inst)) {
         return (double)BGM_INST_ID;
     }
     return -4;
@@ -571,7 +578,7 @@ void dsound_frame_update(int frame_ms) {
     
     SoundInstance* inst;
     
-    REPEAT(i, INSTANCE_COUNT) REPEAT(kind, 4) {
+    REPEAT(i, INSTANCE_COUNT) REPEAT(kind, NUM_KINDS) {
         inst = &sound_instances[kind][i];
         if (inst->exists) {            
             inst->age++;
@@ -639,7 +646,7 @@ int dsound_sound_from_instance(int unknown_id) {
         //is instance; verify
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid(iid, &kind, &iid, inst)) {
+        if (dsound_instance_from_iid(iid, &kind, &iid, &inst)) {
             return inst -> sound -> index;
         } else {
             return ERROR_NON_EXIST;
@@ -653,7 +660,7 @@ int dsound_sound_from_instance(int unknown_id) {
 }
 
 bool dsound_instance_from_iid(
-    int iid, int* get_kind, int* get_index, SoundInstance* get_inst
+    int iid, int* get_kind, int* get_index, SoundInstance** get_inst
 ) {
     //finds an instance given its unique instance id
     
@@ -662,12 +669,12 @@ bool dsound_instance_from_iid(
     
     SoundInstance* inst;
     
-    REPEAT(kind, 4) REPEAT(i, INSTANCE_COUNT) {
+    REPEAT(kind, NUM_KINDS) REPEAT(i, INSTANCE_COUNT) {
         inst = &sound_instances[kind][i];
         if (inst->exists && inst->index == iid) {
             *get_kind = kind;
             *get_index = i;
-            get_inst = inst;
+            *get_inst = inst;
             return true;
         }
     }
@@ -1001,7 +1008,6 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
     clone->SetFrequency((DWORD)(pitch_final * sound->frequency));
 
     int kind = sound->kind;
-    SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
     
     if (kind == 1) {
         dsound_inst_stop(BGM_INST_ID);
@@ -1012,6 +1018,8 @@ int dsound_play(int index, bool loop, double vol, double pan, double pitch) {
         MM_INST_ID = LAST_INST_ID;
     }
     
+    SoundInstance* inst = &sound_instances[kind][dsound_get_free_instance(kind)];
+        
     inst->sound = sound;
     inst->clone_buffer = clone;
     inst->index = LAST_INST_ID;
@@ -1061,7 +1069,7 @@ void dsound_inst_stop(int iid) {
     int kind,index;
     SoundInstance* inst = NULL;
     
-    if (dsound_instance_from_iid(iid, &kind, &index, inst)) {
+    if (dsound_instance_from_iid(iid, &kind, &index, &inst)) {
         dsound_inst_free(inst);
     }
 }
@@ -1104,6 +1112,14 @@ void dsound_stop_nonp() {
                 dsound_inst_free(inst);
             }
         }
+    }
+}
+
+void dsound_stop_all() {
+    //stops all sounds.
+    
+    REPEAT(i, INSTANCE_COUNT) REPEAT(kind,NUM_KINDS) {
+        dsound_inst_free(&sound_instances[kind][i]);
     }
 }
 

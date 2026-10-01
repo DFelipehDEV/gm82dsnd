@@ -172,6 +172,8 @@
 #define sound_stop_all
     ///sound_stop_all()
 
+    __dsound_stop_all()
+
 
 #define sound_delete
     ///sound_delete(index)
