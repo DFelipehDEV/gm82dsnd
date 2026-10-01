@@ -379,7 +379,7 @@ GMREAL __dsound_exists(double index) {
     if (index >= RESOURCE_COUNT) {
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid(iid, &kind, &iid, &inst)) {
+        if (dsound_instance_from_iid((int)index, &kind, &iid, &inst)) {
             return inst -> exists?1:0;
         }
         return 0;
@@ -398,8 +398,8 @@ GMREAL __dsound_setter(double index, double op, double value) {
                 case 0: inst->volume = value; break;
                 case 1: inst->pan    = value; break;
                 case 2: inst->pitch  = value; break;
-            }
-        }
+                }
+                }
         
         return 0;
     }
@@ -646,7 +646,7 @@ int dsound_sound_from_instance(int unknown_id) {
         //is instance; verify
         int kind, iid;
         SoundInstance* inst = NULL;
-        if (dsound_instance_from_iid(iid, &kind, &iid, &inst)) {
+        if (dsound_instance_from_iid(unknown_id, &kind, &iid, &inst)) {
             return inst -> sound -> index;
         } else {
             return ERROR_NON_EXIST;
