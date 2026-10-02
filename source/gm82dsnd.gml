@@ -132,13 +132,13 @@
 #define sound_loop
     ///sound_loop(index)
     
-    __dsound_play(__dsound_name_parser(argument0,"sound_loop"),1,1,0,1,0)
+    return __dsound_play(__dsound_name_parser(argument0,"sound_loop"),1,1,0,1,0)
 
 
 #define sound_play
     ///sound_play(index)   
     
-    __dsound_play(__dsound_name_parser(argument0,"sound_play"),0,1,0,1,0)
+    return __dsound_play(__dsound_name_parser(argument0,"sound_play"),0,1,0,1,0)
 
 
 #define sound_isplaying
@@ -370,7 +370,7 @@
     __snd=__dsound_name_parser(argument0,"sound_loop_ext")
     
     if (argument5) __dsound_stop(__snd)
-    __dsound_play(__snd,1,argument1,argument2,argument3,argument4)
+    return __dsound_play(__snd,1,argument1,argument2,argument3,argument4)
 
 
 #define sound_play_ext
@@ -381,7 +381,7 @@
     __snd=__dsound_name_parser(argument0,"sound_play_ext")
     
     if (argument5) __dsound_stop(__snd)
-    __dsound_play(__snd,0,argument1,argument2,argument3,argument4)
+    return __dsound_play(__snd,0,argument1,argument2,argument3,argument4)
 
 
 #define sound_play_single
@@ -389,7 +389,7 @@
     //Plays a sound, ensuring only one copy of it is playing at a time.
     
     sound_stop(argument0)
-    sound_play(argument0)
+    return sound_play(argument0)
     
     
 #define sound_loop_single
@@ -397,7 +397,7 @@
     //Loops a sound, ensuring only one copy of it is playing at a time.
     
     sound_stop(argument0)
-    sound_loop(argument0)
+    return sound_loop(argument0)
 
 
 #define sound_background_instance
