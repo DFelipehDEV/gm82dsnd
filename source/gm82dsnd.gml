@@ -475,6 +475,7 @@
     __freq = sound_get_frequency(argument0);
     __dsound_setter(__dsound_name_parser(argument0,"sound_set_loop"),3,round(argument1 * __freq))
     if (argument_count >= 3) __dsound_setter(__dsound_name_parser(argument0,"sound_set_loop"),4,round(argument2 * __freq))
+    else __dsound_setter(__dsound_name_parser(argument0,"sound_set_loop"),4,-1)
 
 
 #define sound_pause
